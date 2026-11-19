@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What If · 스트레스 테스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600&family=Noto+Sans+KR:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+/* VOICE  고요하고 정밀하게. 밤의 계기판처럼 말수가 적다.
+   IDEA   빛의 고리(렌즈) 하나. 그 안에서 내 종목이 충격을 통과한다.
+   PICTURE 캔버스로 그린 라벤더 리본 링. 대기 → 확장 → 맥동 → 결과.
+   COLOUR 진주빛 화이트~그레이 #ececf0, 먹색 글자 #1d1c24, 라벤더 #5d50c9 하나만.
+   TYPE   Manrope 200–500(숫자·라틴) + Noto Sans KR 300–400. LAYOUT 모든 것은 링의 중심에. */
+:root{color-scheme:light;--bg:#ececf0;--ink:#1d1c24;--dim:#585664;--faint:#76747f;--lav:#5d50c9;--lav2:#8f82f0;
+  --line:rgba(29,28,36,.09);--line2:rgba(29,28,36,.17);--glass:rgba(255,255,255,.6);--pos:#4a3fc0;--neg:#c03a56}
+*{box-sizing:border-box;min-width:0;scrollbar-width:thin;scrollbar-color:rgba(29,28,36,.14) transparent}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(29,28,36,.12);border-radius:6px}::-webkit-scrollbar-thumb:hover{background:rgba(29,28,36,.24)}
+::-webkit-scrollbar-button{display:none;height:0;width:0}
+html,body{height:100%}
+body{margin:0;background:radial-gradient(120% 95% at 50% 42%,#fbfbfc 0%,#efeff2 48%,#dddce2 100%);color:var(--ink);
+  font:300 15px/1.55 'Manrope','Noto Sans KR',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:1px solid var(--lav);outline-offset:3px;border-radius:8px}
+#ring{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+#stage{position:fixed;inset:0;overflow-y:auto;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:safe center;padding:22px 16px 58px}
+.view{grid-area:1/1;opacity:0;visibility:hidden;transform:scale(.975);transition:opacity .3s ease,transform .6s cubic-bezier(.2,.8,.2,1),visibility 0s .6s}
+.view:not(.on){position:absolute;top:22px;left:16px;right:16px;max-height:calc(100vh - 90px);overflow:hidden;pointer-events:none}
+.view.on{opacity:1;visibility:visible;transform:none;transition:opacity .7s ease .35s,transform .9s cubic-bezier(.2,.8,.2,1) .3s,visibility 0s}
+.eyebrow{font-size:11px;letter-spacing:.32em;color:var(--faint);text-transform:uppercase;text-align:center}
+h1,h2{font-weight:300;letter-spacing:-.01em;margin:10px 0 0;text-align:center}
+h1{font-size:clamp(24px,3vw,30px)}
+h2{font-size:clamp(20px,2.4vw,24px)}
+.note{font-size:12px;color:var(--faint);text-align:center;margin:10px 0 0}
+.linkbtn{display:block;margin:26px auto 0;padding:10px 26px 12px;border-bottom:1px solid var(--line2);font-size:16px;font-weight:400;transition:border-color .3s,color .3s}
+#result .fig{margin-top:18px}#result .res{padding:11px 2px}#result .cond{margin-top:14px}#result .linkbtn,#setup .linkbtn{margin-top:18px}#result .back,#setup .back{margin-top:12px}
+.linkbtn:hover{border-color:var(--lav);color:var(--lav)}
+.linkbtn:disabled{color:var(--faint);cursor:not-allowed;border-color:var(--line)}
+.back{display:block;margin:22px auto 0;font-size:13px;color:var(--faint);padding:8px 14px}
+.back:hover{color:var(--dim)}
+/* top bar */
+#top{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:14px max(4vw,18px) 16px;z-index:3;
+  opacity:0;transition:opacity .6s;pointer-events:none}
+body.authed #top{opacity:1;pointer-events:auto}
+.mark{font-family:Manrope;font-weight:500;letter-spacing:.02em;font-size:15px}
+.mark i{font-style:normal;color:var(--lav)}
+#who{font-size:13px;color:var(--dim);display:flex;gap:14px;align-items:center}
+#who button{color:var(--faint);padding:8px 0}#who button:hover{color:var(--ink)}
+/* login: Google 하나 */
+#login .panel{width:min(320px,100%);text-align:center}
+#login .mark{display:block;font-size:26px;font-weight:300;letter-spacing:.04em}
+#login p.sub{color:var(--dim);margin:10px 0 30px;font-size:14px}
+.ghost{width:100%;height:50px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.7);box-shadow:0 10px 30px -18px rgba(40,30,90,.35);font-size:15px;font-weight:400;display:flex;align-items:center;justify-content:center;gap:10px;transition:border-color .3s,background .3s}
+.ghost:hover{border-color:var(--lav);background:#fff}
+/* idle */
+#hit{position:fixed;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);z-index:2}
+#hint{position:fixed;left:0;right:0;text-align:center;font-size:13px;color:var(--faint);transition:color .3s}
+#idle:not(.on) #hit,#idle:not(.on) #hint{pointer-events:none}
+/* panels */
+.panel{width:min(540px,calc(100vw - 32px))}
+.sect{display:flex;justify-content:space-between;align-items:baseline;margin:26px 0 8px;font-size:12px;color:var(--faint);border-bottom:1px solid var(--line);padding-bottom:10px}
+.row{display:grid;grid-template-columns:36px minmax(0,1fr) auto 32px;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.badge{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:var(--dim);background:rgba(255,255,255,.55);border:1px solid var(--line)}
+.pick{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:4px 22px 4px 0;position:relative;min-height:44px;justify-content:center}
+.pick b{font-weight:400;font-size:15px}
+.pick small{font-size:12px;color:var(--faint);font-family:Manrope}
+.pick::after{content:"";position:absolute;right:4px;top:50%;width:6px;height:6px;border-right:1px solid var(--dim);border-bottom:1px solid var(--dim);transform:translateY(-70%) rotate(45deg)}
+.pick.empty b{color:var(--faint)}
+.qty{display:flex;flex-direction:column;align-items:flex-end}
+.qty label{display:flex;align-items:baseline;gap:6px}
+.qty input{width:84px;height:36px;text-align:right;border:0;border-bottom:1px solid var(--line2);background:none;font-family:Manrope;font-size:16px;font-weight:400;padding:0 2px}
+.qty input:focus{outline:0;border-color:var(--lav)}
+.qty span{font-size:12px;color:var(--dim)}
+.qty small{font-size:11px;color:var(--faint);font-family:Manrope;white-space:nowrap;margin-top:2px}
+.del{width:32px;height:32px;border-radius:50%;color:var(--faint);font-size:18px;line-height:1}
+.del:hover{color:var(--ink);background:rgba(29,28,36,.05)}
+.add{margin-top:10px;font-size:13px;color:var(--dim);padding:8px 0}
+.add:hover{color:var(--ink)}.add:disabled{color:var(--faint);cursor:default}
+.total{display:flex;justify-content:space-between;font-size:12px;color:var(--faint);margin-top:4px}
+.total b{font-weight:400;color:var(--dim);font-family:Manrope}
+.shocks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:10px 4px 8px;text-align:center;background:transparent;transition:background .35s,border-color .35s,box-shadow .35s}
+.tile.up,.tile.dn{background:rgba(255,255,255,.92);border-color:rgba(29,28,36,.14);box-shadow:0 10px 24px -18px rgba(40,30,90,.45)}
+.tile.up span,.tile.dn span{color:var(--dim)}
+.tile span{display:block;font-size:11px;color:var(--faint)}
+.tile .ctl{display:flex;align-items:center;justify-content:space-between;margin-top:4px}
+.tile .ctl button{width:30px;height:32px;color:var(--faint);font-size:17px;border-radius:8px}
+.tile .ctl button:hover{color:var(--ink);background:rgba(29,28,36,.05)}
+.tile output{font-family:Manrope;font-weight:400;font-size:16px;white-space:nowrap;flex:1 1 0;min-width:0;text-align:center;font-variant-numeric:tabular-nums}
+.tile .ctl button{flex:none}
+.shocks{width:100%}
+.tile output small{font-size:11px;color:var(--dim);margin-left:2px}
+#msg{min-height:18px;text-align:center;font-size:12px;color:var(--neg);margin-top:10px}
+/* popover */
+#pop{position:fixed;z-index:10;width:300px;border:1px solid var(--line2);border-radius:16px;background:rgba(255,255,255,.97);backdrop-filter:blur(16px);
+  box-shadow:0 30px 80px -24px rgba(40,30,90,.35);padding:8px;display:none}
+#pop.on{display:block}
+#pop input{width:100%;height:40px;border:0;border-bottom:1px solid var(--line);background:none;padding:0 10px;font-size:16px}
+#pop input:focus{outline:0}
+#pop ul{list-style:none;margin:6px 0 0;padding:0;max-height:264px;overflow-y:auto}
+#pop li{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;cursor:pointer}
+#pop li .badge{width:30px;height:30px;font-size:10px}
+#pop li b{font-weight:400;font-size:14px;display:block}
+#pop li small{font-size:11px;color:var(--faint);font-family:Manrope}
+#pop li em{font-style:normal;font-size:11px;color:var(--faint);font-family:Manrope}
+#pop li[aria-selected=true]{background:rgba(93,80,201,.08)}
+#pop li[aria-disabled=true]{opacity:.35;cursor:default}
+#pop .none{padding:16px;text-align:center;color:var(--faint);font-size:13px}
+/* result */
+#big{font-family:Manrope;font-weight:200;font-size:clamp(46px,7.5vw,68px);text-align:center;margin:20px 0 0;line-height:1;letter-spacing:-.02em;white-space:nowrap}
+#big small{font-size:.3em;color:var(--dim);margin-left:8px;font-weight:300;font-family:'Noto Sans KR'}
+.meta{display:flex;justify-content:center;gap:22px;margin-top:14px;font-size:13px;color:var(--faint)}
+.meta b{font-weight:400;color:var(--ink);font-family:Manrope;margin-left:6px}
+.fig{position:relative;height:150px;margin-top:26px}
+.fig svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);margin-top:8px}
+.ln{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1) .2s}
+.drawn .ln{stroke-dashoffset:0}
+.res{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:18px;padding:14px 2px;border-bottom:1px solid var(--line);align-items:baseline}
+.res:first-child{margin-top:18px;border-top:0}
+.res span{font-size:15px}.res small{font-size:12px;color:var(--faint);margin-left:8px;font-family:Manrope}
+.res em{font-style:normal;font-family:Manrope;font-size:13px;color:var(--dim);text-align:right}
+.res b{font-weight:400;font-family:Manrope;text-align:right;white-space:nowrap;min-width:110px}
+.cond{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin-top:20px;font-size:12px;color:var(--faint)}
+.cond span.on{color:var(--lav);font-weight:500}
+/* detail · minutes: 왼쪽 채팅, 오른쪽 링 */
+.dwrap{width:min(1320px,100%);display:grid;grid-template-columns:minmax(0,520px) minmax(0,780px);justify-content:space-between;gap:32px;align-items:center}
+.rpanel{width:min(360px,100%);justify-self:center;text-align:center}
+#detail,#minutes{align-self:start}
+#minutes.on{width:100%;display:flex;justify-content:center}
+.chat{display:flex;flex-direction:column;height:calc(100vh - 84px);padding-left:clamp(12px,3.5vw,56px)}
+.chat .eyebrow,.chat h2{text-align:left}
+.steps{display:flex;gap:16px;margin-top:14px;font-size:12px;color:var(--faint)}
+.steps span{display:flex;align-items:center;gap:6px}
+.steps span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--line2);transition:background .3s}
+.steps span.done{color:var(--dim)}.steps span.done::before{background:var(--lav)}
+.steps span.on{color:var(--ink)}.steps span.on::before{background:var(--ink);box-shadow:0 0 0 4px rgba(93,80,201,.15)}
+.log{flex:1;overflow-y:auto;margin-top:14px;padding:4px 8px 4px 0;-webkit-mask-image:linear-gradient(transparent,#000 22px,#000 calc(100% - 10px),transparent);mask-image:linear-gradient(transparent,#000 22px,#000 calc(100% - 10px),transparent)}
+.divider{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--faint);margin:22px 0 6px}
+.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.msg{margin:16px 0}
+.msg.new{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+.mono{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:13px;color:var(--ink);border:1px solid var(--line)}
+.hd{font-size:12px;color:var(--faint);display:flex;gap:6px;align-items:baseline}
+.hd b{color:var(--ink);font-weight:500;font-size:14px}
+.bub{margin-top:5px;padding:11px 14px;border-radius:4px 16px 16px 16px;background:rgba(255,255,255,.78);border:1px solid var(--line);font-size:15px;line-height:1.7;box-shadow:0 10px 26px -20px rgba(40,30,90,.4);width:fit-content;max-width:100%}
+.bub .to{color:var(--lav);font-weight:500;margin-right:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips a{font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(93,80,201,.07);color:var(--dim);text-decoration:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.chips a:hover{color:var(--lav);background:rgba(93,80,201,.12)}
+.refs .more{display:block;margin-top:3px}
+.chips span{font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(93,80,201,.07);color:var(--dim);font-family:Manrope,'Noto Sans KR';white-space:nowrap}
+.dots{display:inline-flex;gap:4px;padding:15px 16px}
+.dots i{width:5px;height:5px;border-radius:50%;background:var(--faint);animation:blink 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.skip{align-self:flex-start;margin-top:10px;font-size:12px;color:var(--faint);padding:8px 0}.skip:hover{color:var(--lav)}
+.rnum{font-family:Manrope;font-weight:200;font-size:clamp(36px,4.4vw,48px);line-height:1;margin:14px 0 0;letter-spacing:-.02em;white-space:nowrap}
+.rnum small{font-size:.34em;color:var(--dim);margin-left:6px;font-family:'Noto Sans KR';font-weight:300}
+.rmeta{font-size:12px;color:var(--faint);margin:10px 0 0}.rmeta b{font-weight:500;color:var(--ink);font-family:Manrope}
+.fig.sm{height:96px;margin-top:16px}
+.concl{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);text-align:left;min-height:150px}
+.concl h3{margin:0;font-size:12px;font-weight:500;color:var(--lav);letter-spacing:.04em}
+.concl p{margin:6px 0 0;font-size:14px;line-height:1.65}
+.refs{list-style:none;margin:12px 0 0;padding:0;font-size:12px}
+.refs li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid var(--line);align-items:baseline}
+.refs .rk{color:var(--faint)}
+.refs a,.refs button{color:var(--ink);text-decoration:none;text-align:left;font-size:12px;line-height:1.5;border-bottom:1px solid transparent;transition:color .2s,border-color .2s;justify-self:start}
+.refs a:hover,.refs button:hover{color:var(--lav);border-color:currentColor}
+.refs i{font-style:normal;color:var(--faint);margin-left:4px;white-space:nowrap}
+.wait{color:var(--faint);font-size:13px;text-align:center;padding-top:26px}
+.concl.in{animation:rise .6s ease both}
+.pills{display:flex;justify-content:center;gap:10px;margin-top:20px}
+.pill{height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--line2);font-size:14px;background:rgba(255,255,255,.6);transition:border-color .25s,background .25s}
+.pill:hover{border-color:var(--lav)}
+.pill.dark{background:var(--ink);color:#fff;border-color:var(--ink)}.pill.dark:hover{background:#000}
+.pill:disabled{opacity:.4;cursor:default}
+/* minutes: 링이 화면을 감싸고, 왼쪽 목록 · 오른쪽 내용 */
+.mwrap{width:min(1100px,100%);display:grid;grid-template-columns:250px minmax(0,1fr);gap:clamp(28px,4vw,60px);align-items:start;padding:clamp(8px,3vh,32px) clamp(16px,6vw,96px) 0;height:calc(100vh - 84px)}
+.mside{position:sticky;top:0;display:flex;flex-direction:column;height:100%;min-height:0;padding-bottom:24px;box-sizing:border-box}
+.mnew{margin:18px 0 0;align-self:flex-start;font-size:15px;padding:8px 4px 10px}
+.mside .eyebrow,.mside h2{text-align:left}
+.msub{font-size:12px;color:var(--faint);margin:8px 0 0}
+.mlist{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:2px;flex:0 1 auto;min-height:0;overflow-y:auto}
+#mmain{height:100%;overflow-y:auto;padding:0 10px 24px 4px}
+.mitem{width:100%;text-align:left;padding:12px 14px;border-radius:14px;display:grid;gap:3px;transition:background .25s}
+.mitem:hover{background:rgba(255,255,255,.55)}
+.mitem[aria-current=true]{background:#fff;box-shadow:0 12px 30px -20px rgba(40,30,90,.45)}
+.mitem .top{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);font-family:Manrope,'Noto Sans KR'}
+.mitem b{font-weight:400;font-size:14px}
+.tag{font-size:10px;padding:2px 8px;border-radius:999px;background:rgba(29,28,36,.06);color:var(--dim);font-family:'Noto Sans KR'}
+.tag.reg{background:var(--ink);color:#fff}
+.mhead h3{margin:8px 0 0;font-weight:300;font-size:clamp(22px,2.4vw,28px)}
+.mhead .mm{font-size:12px;color:var(--faint);margin-top:6px;font-family:Manrope,'Noto Sans KR'}
+.msum{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin-top:22px;padding:22px 24px;border-radius:22px;background:rgba(255,255,255,.62);border:1px solid var(--line);backdrop-filter:blur(12px)}
+.msum .rnum{margin:4px 0 0;font-size:clamp(30px,3.4vw,40px)}
+.msum .concl{margin:0;padding:0;border:0;min-height:0}
+.mlog{margin-top:8px}
+.mlog .divider{margin-top:28px}
+.mfoot{display:flex;gap:10px;margin-top:26px}
+.empty{color:var(--faint);font-size:13px;padding:40px 0}
+@media(max-width:860px){.mwrap{grid-template-columns:minmax(0,1fr);height:auto}#mmain{height:auto;overflow:visible}.mside{position:static;height:auto}.mlist{flex-direction:row;overflow-x:auto;max-height:none}.mitem{min-width:190px}.msum{grid-template-columns:minmax(0,1fr)}}
+#toast{position:fixed;left:50%;bottom:72px;transform:translate(-50%,20px);background:var(--ink);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;opacity:0;transition:.35s;pointer-events:none;z-index:20}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#mode{font-size:11px;padding:3px 9px;border-radius:999px;background:rgba(29,28,36,.06);color:var(--dim)}#mode:empty{display:none}
+.failmsg{font-size:12px;color:var(--faint);margin:10px 0}
+.bub p{margin:0}.bub p+p{margin-top:6px}
+/* 네 분석가 구분: 이름 색과 말풍선 왼쪽 선만 각자의 차분한 색 */
+.r-portfolio{--pc:#6d5fc4}.r-macro{--pc:#3f6f9a}.r-market{--pc:#4d8467}.r-risk{--pc:#ad5c55}
+.turn .hd b,.rq b,.board li b,.kv li b{color:var(--pc,var(--ink))}
+.turn .hd b::before,.board li b::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pc);margin-right:6px;vertical-align:1px}
+.turn .bub{border-left:3px solid var(--pc,var(--line))}
+.rq b{font-weight:500}
+#detail .rpanel{width:min(660px,100%)}
+#detail .rnum{font-size:clamp(42px,5vw,58px)}
+#detail .rmeta{font-size:13.5px}
+#detail .fig.sm{height:120px}
+#detail .rpanel.done .concl{margin-top:18px;padding-top:18px}#detail .concl>p{margin:10px 0 18px}#detail .rpanel.done .links{margin-top:12px}
+#detail .axis{font-size:12px}
+#detail .concl h3{font-size:13px}
+#detail .concl p{font-size:17.5px;line-height:1.6}
+#detail .kv{font-size:15px}#detail .board li{font-size:13.5px}
+#detail .concl .kv{margin-top:8px}#detail .concl .kv li{margin-bottom:3px;grid-template-columns:132px minmax(0,1fr)}#detail .concl .kv{grid-template-columns:88px minmax(0,1fr)}
+#detail .refs li{padding:5px 0}#detail .concl h3{font-size:14px}
+#detail .refs,#detail .refs a,#detail .refs button{font-size:14.5px}
+#detail .refs li{grid-template-columns:72px minmax(0,1fr)}
+.concl .kv{grid-template-columns:78px minmax(0,1fr)}
+.concl .kv>span{white-space:nowrap}
+.concl .kv li b{color:var(--pc,var(--ink));font-weight:500}
+.concl .kv li{display:grid;grid-template-columns:112px minmax(0,1fr);gap:6px;margin:0 0 5px}
+.kv li span{color:var(--dim)}.kv li i{font-style:normal;color:var(--faint)}
+.kv li s{text-decoration:line-through;text-decoration-color:rgba(29,28,36,.3)}
+.kv li em{font-style:normal;color:var(--faint)}
+.links{display:flex;justify-content:center;gap:30px;margin-top:18px}.links .linkbtn{margin:0;font-size:15px;padding:8px 20px 10px}
+.mfoot.links{margin-top:30px}
+#skip{display:none!important}
+.bh{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fast{font-size:13px;color:var(--dim);padding:2px 0;font-weight:400;letter-spacing:0;transition:border-color .2s,color .2s}
+.fast:hover{border-color:var(--lav);color:var(--lav)}.fast:disabled{color:var(--faint)}
+a.ref{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,var(--pc) 45%,transparent);text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer;transition:color .2s,text-decoration-color .2s}
+a.ref:hover{color:var(--pc);text-decoration-color:var(--pc)}
+.msg.flash .bub{animation:flash 1.4s ease}
+@keyframes flash{0%,40%{box-shadow:0 0 0 3px color-mix(in srgb,var(--pc,#6d5fc4) 35%,transparent)}100%{box-shadow:0 10px 26px -20px rgba(40,30,90,.4)}}
+.st{font-style:normal;font-size:10.5px;padding:2px 8px;border-radius:999px;margin-left:4px;background:rgba(29,28,36,.06);color:var(--dim);white-space:nowrap}
+.st-agree{background:rgba(93,80,201,.1);color:var(--lav)}.st-disagree{background:rgba(192,58,86,.1);color:var(--neg)}
+.st-partial{background:rgba(196,140,40,.12);color:#8a6414}.st-revise{background:var(--ink);color:#fff}.st-first{background:rgba(29,28,36,.06)}
+.rq{font-size:12px;color:var(--faint);margin:4px 0 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.rv{font-size:12px;color:var(--ink);margin:6px 0 0 2px}
+.mod{margin:6px 0 14px;width:100%;box-sizing:border-box;text-align:left;padding:14px 18px;border-radius:16px;background:rgba(29,28,36,.04)}
+.mod b{display:block;font-size:11px;font-weight:500;color:var(--lav);letter-spacing:.04em}.mod p{margin:5px 0 0;font-size:15px;line-height:1.7}.mod small{display:block;margin-top:4px;font-size:12px;color:var(--faint)}
+.clm{margin:8px 0 0;padding-left:18px}.clm li{margin:3px 0}.clm em{display:block;font-style:normal;font-size:12px;color:var(--faint)}
+.chips span b{font-weight:500;color:var(--ink);font-family:Manrope}
+.board{list-style:none;margin:10px 0 0;padding:0}
+.board li{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;row-gap:3px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+.board li>span{grid-column:1/-1;white-space:normal!important;overflow:visible!important;line-height:1.55;color:var(--dim)}
+.board li b{font-size:12px}.board li>span.pre{grid-column:2;color:var(--faint)}.board li .st{justify-self:start}
+.board li b{font-weight:500}.board li span{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.board .pre{color:var(--faint);grid-column:2/-1}
+.board .st{margin:0}
+.kv{display:grid;grid-template-columns:56px minmax(0,1fr);gap:8px;margin-top:10px;font-size:12px}
+.kv>span{color:var(--faint)}.kv ul{margin:0;padding:0;list-style:none}.kv li{margin:0 0 3px;color:var(--dim)}.kv li b{font-weight:500;color:var(--ink)}.kv em{font-style:normal;color:var(--faint)}
+.refs .more2{display:block;margin-top:3px;color:var(--ink);text-decoration:none}
+.more{margin-top:6px;font-size:12px;color:var(--faint);padding:6px 2px;display:inline-flex;align-items:center;gap:4px}
+.more:hover{color:var(--lav)}.more::after{content:"";width:5px;height:5px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+.more[aria-expanded=true]::after{transform:rotate(-135deg) translateY(-1px)}
+.why{display:none;margin-top:2px;padding:8px 12px;border-radius:12px;background:rgba(29,28,36,.03);border:1px solid var(--line);font-size:12.5px;line-height:1.6;color:var(--dim);width:fit-content;max-width:100%}
+.why>:first-child{margin-top:0}.why .chips{margin-top:6px}.why .clm{padding-left:16px}
+.why.on{display:block}.why p{margin:0}.why p+p{margin-top:8px}.why b{color:var(--ink);font-weight:500}
+.mlv{display:none}.rpanel.ml .mlv{display:block}.rpanel.ml #dConcl,.rpanel.ml > .pills{display:none}
+#dMl .res,.mlv .res,#mmain .concl .res{text-align:left;grid-template-columns:minmax(0,1fr) 78px 120px;gap:28px}
+#dMl .res em,#dMl .res b,#mmain .concl .res em,#mmain .concl .res b{text-align:right}
+.mlv .res:first-child{margin-top:12px}.mlv .res span{font-size:14px}.mlv .res b{min-width:0;font-size:14px}
+.mlv .note{margin-top:12px}
+#toMin{color:var(--faint);padding:8px 0}#toMin:hover{color:var(--ink)}
+@media(max-width:980px){.dwrap{grid-template-columns:minmax(0,1fr)}.rpanel{order:-1;margin:40px auto 60px}.chat{height:auto}.log{max-height:none;-webkit-mask-image:none;mask-image:none}}
+.btnrow{display:flex;justify-content:center;gap:18px;margin-top:14px}
+.btnrow .back{margin:0}
+@media(min-width:700px){#stage{overflow:hidden}#rows{max-height:190px;overflow-y:auto;padding-right:4px}}
+@media(max-width:600px){
+  #stage{padding:22px 14px 76px}
+  .shocks{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row{grid-template-columns:32px minmax(0,1fr) auto 28px;gap:8px}
+  .qty input{width:64px}.res b{min-width:0}.meta{gap:14px}
+  #who span{display:none}
+}
+@media(prefers-reduced-motion:reduce){.view,.view.on,.ln{transition:none}.msg.new,.concl.in{animation:none}}
+</style>
+</head>
+<body data-view="idle">
+<canvas id="ring" aria-hidden="true"></canvas>
+
+<header id="top">
+  <span class="mark">What <i>If</i></span>
+  <span id="who"><span id="mode"></span><button type="button" id="toMin">회의록</button><span id="whoName"></span><button type="button" id="logout">로그아웃</button></span>
+</header>
+
+<main id="stage">
+  <!-- 2. 대기: 링 안의 그래프 -->
+  <section class="view on" id="idle" aria-label="시작">
+    <button type="button" id="hit" aria-label="스트레스 테스트 시작하기"></button>
+    <p id="hint">그래프를 눌러 시작하세요</p>
+  </section>
+
+  <!-- 2-1. 로그인: 그래프를 누르면 Google 하나만 -->
+  <section class="view" id="login" aria-label="로그인">
+    <div class="panel">
+      <span class="mark">What <i>If</i></span>
+      <p class="sub">Google 계정으로 시작하세요.</p>
+      <button class="ghost" type="button" id="google">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#ffc107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#ff3d00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4caf50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976d2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Google로 계속하기</button>
+      <p class="note">시안에서는 누르면 바로 로그인돼요.</p>
+      <button type="button" class="back" data-go="idle">돌아가기</button>
+    </div>
+  </section>
+
+  <!-- 3. 종목·충격 설정 -->
+  <section class="view" id="setup" aria-label="종목과 충격 설정">
+    <div class="panel">
+      <p class="eyebrow">Your portfolio</p>
+      <h1>포트폴리오에 어떤 충격을 줄까요.</h1>
+      <div class="sect"><span>내 종목</span><span>보유 수량</span></div>
+      <div id="rows"></div>
+      <button type="button" class="add" id="addRow">+ 종목 추가</button>
+      <div class="total"><span id="sumLbl">평가금액 합계 · 예시 가격 기준</span><b id="sum">0원</b></div>
+      <div class="sect"><span>가정할 충격 · 5거래일</span><button type="button" id="reset" style="font-size:12px;color:var(--faint)">초기화</button></div>
+      <div class="shocks" id="shocks"></div>
+      <p id="msg" role="status"></p>
+      <button type="button" class="linkbtn" id="run">시장에 충격주기</button>
+      <p class="note" id="setNote">인터랙션 시안 · 예시 계산</p>
+      <button type="button" class="back" data-go="idle">돌아가기</button>
+    </div>
+  </section>
+
+  <!-- 4. 결과 -->
+  <section class="view" id="result" aria-label="결과">
+    <div class="panel">
+      <p class="eyebrow">A different tomorrow</p>
+      <h2>포트폴리오 예상</h2>
+      <p id="big">+0<small>원</small></p>
+      <div class="meta"><span>가상 손익<b id="pct">0%</b></span><span>보유<b id="held">0원</b></span><span id="incrW" hidden>무충격 대비<b id="incr"></b></span></div>
+      <div class="fig"><svg id="chart" role="img" aria-label="현재부터 5거래일 후까지의 가상 평가금액 경로"></svg></div>
+      <div class="axis"><span>현재</span><span>5거래일 후 · 가상</span></div>
+      <div id="resRows"></div>
+      <div class="cond" id="cond"></div>
+      <button type="button" class="linkbtn" id="more">근거 확인하기</button>
+      <p class="note" id="rnote">예시 가격·예시 계수로 만든 연출용 결과입니다. 실제 ML 분석 결과가 아닙니다.</p>
+      <button type="button" class="back" data-go="setup">다른 충격 테스트하기</button>
+    </div>
+  </section>
+
+  <!-- 5. 자세히: 왼쪽 AI 회의, 오른쪽 링(그래프 + 최종 결론) -->
+  <section class="view" id="detail" aria-label="AI 회의">
+    <div class="dwrap">
+    <div class="chat">
+      <p class="eyebrow">AI roundtable</p>
+      <h2>네 분석가의 회의</h2>
+      <div class="steps" id="steps"><span>회의 중</span><span>결론</span></div>
+      <div class="log" id="log" aria-live="polite"></div>
+      <button type="button" class="skip" id="skip">기다리지 않고 바로 보기</button>
+    </div>
+    <div class="panel rpanel">
+      <p class="eyebrow">My portfolio · 5 days</p>
+      <p class="rnum" id="dNum"></p>
+      <p class="rmeta" id="dMeta"></p>
+      <div class="fig sm"><svg id="dChart" role="img" aria-label="현재부터 5거래일 후까지 내 포트폴리오의 가상 경로"></svg></div>
+      <div class="axis"><span>현재</span><span>5거래일 후 · 가상</span></div>
+      <div class="concl" id="dConcl"></div>
+      <div class="mlv" id="dMl"></div>
+      <div class="pills links"><button type="button" class="linkbtn" data-go="setup">다른 충격 테스트하기</button><button type="button" class="linkbtn" id="saveMin" disabled>회의록 저장</button></div>
+    </div>
+    </div>
+  </section>
+
+  <!-- 6. 회의록: 커진 링 안, 왼쪽 목록 · 오른쪽 내용 -->
+  <section class="view" id="minutes" aria-label="회의록">
+    <div class="mwrap">
+      <aside class="mside">
+        <p class="eyebrow" style="text-align:left">Minutes</p>
+        <h2>회의록</h2>
+        <p class="msub" id="msub"></p>
+        <ul class="mlist" id="mlist"></ul>
+        <button type="button" class="linkbtn mnew" data-go="setup">다른 충격 테스트하기</button>
+      </aside>
+      <article id="mmain" aria-live="polite"></article>
+    </div>
+  </section>
+</main>
+
+<div id="toast" role="status"></div>
+<div id="pop" role="dialog" aria-label="종목 선택">
+  <input id="q" type="search" placeholder="종목명 또는 코드 검색" autocomplete="off" aria-controls="opts">
+  <ul id="opts" role="listbox"></ul>
+</div>
+
+<script>
+{
+const $ = s => document.querySelector(s);
+const won = n => Math.round(n).toLocaleString('ko-KR');
+const sgn = n => (n > 0 ? '+' : n < 0 ? '−' : '') + won(Math.abs(n));
+const pctf = n => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(2) + '%';
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* 코스피 시총 상위 20 (holdings.js와 같은 목록). 가격·계수는 화면 시안용 예시값.
+   계수: [환율 +1%당, 미국 금리 +100bp당, WTI +10%당, VIX +10pt당] 5거래일 수익률(%) */
+const ASSETS = [
+  ['005930','삼성전자','삼성',98000,[.30,-1.4,-.2,-1.8]], ['000660','SK하이닉스','SK',212000,[.35,-2.1,-.3,-2.6]],
+  ['373220','LG에너지솔루션','LG엔',368000,[.20,-2.4,.4,-2.2]], ['207940','삼성바이오로직스','삼바',1012000,[.15,-2.0,-.1,-1.5]],
+  ['005380','현대차','현대',246000,[.45,-.8,-.4,-1.6]], ['005935','삼성전자우','삼우',79000,[.28,-1.2,-.2,-1.5]],
+  ['000270','기아','기아',104000,[.48,-.7,-.4,-1.5]], ['068270','셀트리온','셀트',186000,[.12,-1.8,-.1,-1.4]],
+  ['105560','KB금융','KB',112000,[-.05,.9,.1,-1.3]], ['012450','한화에어로스페이스','한화',742000,[.25,-1.1,.3,-1.2]],
+  ['034020','두산에너빌리티','두산',64000,[.10,-1.6,.5,-2.0]], ['055550','신한지주','신한',68000,[-.05,.8,.1,-1.2]],
+  ['028260','삼성물산','물산',172000,[.10,-1.0,0,-1.4]], ['012330','현대모비스','모비',288000,[.35,-.8,-.3,-1.3]],
+  ['402340','SK스퀘어','SKS',178000,[.25,-1.9,-.2,-2.4]], ['032830','삼성생명','생명',118000,[-.10,1.1,0,-1.0]],
+  ['086790','하나금융지주','하나',86000,[-.05,.9,.1,-1.3]], ['006400','삼성SDI','SDI',238000,[.18,-2.2,.4,-2.3]],
+  ['009150','삼성전기','전기',168000,[.32,-1.3,-.2,-1.9]], ['034730','SK','SK',214000,[.12,-1.0,.6,-1.5]]
+];
+const BY = Object.fromEntries(ASSETS.map(a => [a[0], a]));
+const SECTOR = {'005930':'반도체','000660':'반도체','373220':'2차전지','207940':'바이오','005380':'자동차','005935':'반도체','000270':'자동차','068270':'바이오',
+  '105560':'금융','012450':'방산','034020':'전력설비','055550':'금융','028260':'지주','012330':'자동차부품','402340':'지주','032830':'보험',
+  '086790':'금융','006400':'2차전지','009150':'전자부품','034730':'지주'};
+const SHOCKS = [
+  {k:'fx',  label:'원/달러 환율', unit:'%',  step:1,  min:-20, max:20},
+  {k:'rate',label:'미국 10년 금리', unit:'bp', step:25, min:-300,max:300},
+  {k:'wti', label:'WTI 유가', unit:'%',  step:5,  min:-50, max:50},
+  {k:'vix', label:'VIX', unit:'pt', step:5,  min:-20, max:40}
+];
+const DEF = {fx:5, rate:100, wti:0, vix:0};
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nm = c => BY[c] ? BY[c][1] : c;
+/* LIVE: 배포된 SWA에서 /.auth/me가 응답하면 실제 API를 씁니다. 아니면 시안 모드(예시 데이터). */
+const L = {on:false, support:null, price:{}, priceAt:null, holdLoaded:false, timer:0};
+const price = c => L.on ? L.price[c] : (BY[c] ? BY[c][3] : undefined);
+const options = () => L.on && L.support ? ASSETS.filter(a => L.support.has(a[0])) : ASSETS;
+const MAX = 5;
+
+let S = {view:'idle', user:'', hold:[{c:'005930',n:10},{c:'005380',n:5}], shock:{...DEF}};
+try { const s = JSON.parse(localStorage.getItem('whatif-proto') || 'null'); if (s && Array.isArray(s.hold)) { S.hold = s.hold; S.shock = {...DEF, ...s.shock}; } } catch (e) {}
+const save = () => { try { localStorage.setItem('whatif-proto', JSON.stringify({hold:S.hold, shock:S.shock})); } catch (e) {} };
+
+/* ---------- 한 화면 맞춤: 패널이 화면(과 링) 안에 들어가도록 zoom ---------- */
+function fit() {
+  const vw = innerWidth, vh = innerHeight;
+  document.querySelectorAll('.panel').forEach(p => p.style.zoom = '');
+  if (vw < 700) return;
+  const p = document.querySelector('#' + S.view + '.on .panel'); if (!p) return;
+  const h = p.offsetHeight, w = p.offsetWidth; if (!h) return;
+  // 화면 높이 안에서 최대한 크게(최대 1.2배). 링은 화면 밖으로 나가도 되고, 페이지는 스크롤되지 않음.
+  const meet = S.view === 'detail' && !p.classList.contains('done') && !p.classList.contains('ml');
+  const max = vh - (S.view === 'setup' || S.view === 'result' ? 76 : 94), up = S.view === 'detail' ? (meet ? .96 : 1.06) : 1.2;
+  const z = Math.max(.62, Math.min(up, max / h));
+  if (Math.abs(z - 1) > .01) p.style.zoom = z.toFixed(3);
+}
+addEventListener('resize', () => fit());
+
+/* ---------- views ---------- */
+function go(v) {
+  closePop();
+  S.view = v;
+  document.body.dataset.view = v;
+  document.querySelectorAll('.view').forEach(e => e.classList.toggle('on', e.id === v));
+  if (v === 'setup') { renderRows(); renderShocks(); if (L.on) loadLive(); }
+  if (v !== 'setup') clearTimeout(L.timer);
+  if (v !== 'calc') $('#stage').scrollTop = 0;
+  fit();
+}
+document.addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) go(b.dataset.go); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pop').classList.contains('on') && ['login','setup','result'].includes(S.view)) go('idle'); else if (e.key === 'Escape' && (S.view === 'detail' || S.view === 'minutes')) go(R0 ? 'result' : 'idle'); });
+
+/* ---------- login ---------- */
+function setUser(name) {
+  S.user = name; $('#whoName').textContent = name;
+  document.body.classList.toggle('authed', !!name);
+  $('#hint').textContent = name ? '그래프를 눌러 내 종목의 변화를 살펴보세요' : '그래프를 눌러 시작하세요';
+}
+$('#google').addEventListener('click', () => {
+  if (L.on) { location.href = '/.auth/login/google?post_login_redirect_uri=' + encodeURIComponent('/?start=1'); return; }
+  setUser('Google 계정');
+  go('loading');                                   // 링 안 그래프가 1초쯤 로딩하듯 움직이고
+  setTimeout(() => go('setup'), reduce ? 300 : 1200); // 종목 화면이 열린다
+});
+$('#logout').addEventListener('click', () => { if (L.on) { location.href = '/.auth/logout?post_logout_redirect_uri=/'; return; } setUser(''); go('idle'); });
+$('#hit').addEventListener('click', () => go(S.user ? 'setup' : 'login'));
+
+/* ---------- holdings rows ---------- */
+function renderRows() {
+  $('#rows').innerHTML = S.hold.map((h, i) => {
+    const a = BY[h.c], px = a ? price(a[0]) : undefined;
+    const val = px ? px * (h.n || 0) : 0;
+    return `<div class="row" data-i="${i}">
+      <span class="badge">${a ? a[2] : '·'}</span>
+      <button type="button" class="pick${a ? '' : ' empty'}" data-pick="${i}" aria-haspopup="listbox">
+        <b>${a ? a[1] : '종목 선택'}</b><small>${a ? a[0] + ' · ' + (px ? won(px) + '원' : '현재가 확인 중') : '드롭다운에서 고르기'}</small></button>
+      <div class="qty"><label><input inputmode="numeric" data-qty="${i}" value="${h.n ? won(h.n) : ''}" placeholder="0" aria-label="${a ? a[1] : '종목'} 보유 주식 수"><span>주</span></label>
+        <small>${val ? '≈ ' + won(val) + '원' : '&nbsp;'}</small></div>
+      <button type="button" class="del" data-del="${i}" aria-label="이 종목 빼기">×</button>
+    </div>`;
+  }).join('') || '<p class="note" style="margin:18px 0">아직 고른 종목이 없어요. 아래에서 추가해 주세요.</p>';
+  $('#addRow').disabled = S.hold.length >= MAX;
+  $('#addRow').textContent = S.hold.length >= MAX ? `최대 ${MAX}종목까지 담을 수 있어요` : '+ 종목 추가';
+  sum(); fit();
+}
+function sum() {
+  const t = S.hold.reduce((s, h) => s + (price(h.c) || 0) * (h.n || 0), 0);
+  $('#sum').textContent = won(t) + '원';
+  return t;
+}
+$('#rows').addEventListener('input', e => {
+  const i = e.target.dataset.qty; if (i === undefined) return;
+  const d = e.target.value.replace(/[^0-9]/g, '').slice(0, 7);
+  S.hold[i].n = +d || 0;
+  e.target.value = d ? won(+d) : '';
+  const px = price(S.hold[i].c);
+  e.target.closest('.qty').querySelector('small').innerHTML = px && S.hold[i].n ? '≈ ' + won(px * S.hold[i].n) + '원' : '&nbsp;';
+  sum(); save(); $('#msg').textContent = '';
+});
+$('#rows').addEventListener('click', e => {
+  const d = e.target.closest('[data-del]');
+  if (d) { S.hold.splice(+d.dataset.del, 1); save(); renderRows(); return; }
+  const p = e.target.closest('[data-pick]');
+  if (p) openPop(+p.dataset.pick, p);
+});
+$('#addRow').addEventListener('click', () => {
+  if (S.hold.length >= MAX) return;
+  S.hold.push({c:'', n:0}); renderRows();
+  const btns = document.querySelectorAll('[data-pick]'); const b = btns[btns.length - 1];
+  openPop(S.hold.length - 1, b);
+});
+
+/* ---------- dropdown ---------- */
+let popRow = -1, act = 0, list = [];
+function openPop(i, anchor) {
+  popRow = i;
+  const r = anchor.getBoundingClientRect(), pop = $('#pop');
+  const w = Math.min(320, innerWidth - 24);
+  pop.style.width = w + 'px';
+  pop.style.left = Math.max(12, Math.min(r.left, innerWidth - w - 12)) + 'px';
+  const below = innerHeight - r.bottom;
+  if (below < 340 && r.top > below) { pop.style.top = ''; pop.style.bottom = (innerHeight - r.top + 6) + 'px'; }
+  else { pop.style.bottom = ''; pop.style.top = (r.bottom + 6) + 'px'; }
+  pop.classList.add('on'); anchor.setAttribute('aria-expanded', 'true');
+  $('#q').value = ''; fill(); $('#q').focus();
+}
+function closePop() {
+  if (!$('#pop').classList.contains('on')) return;
+  $('#pop').classList.remove('on');
+  const b = document.querySelector(`[data-pick="${popRow}"]`); if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); }
+  popRow = -1;
+}
+function fill() {
+  const q = $('#q').value.trim().toLowerCase();
+  const used = new Set(S.hold.filter((h, j) => j !== popRow).map(h => h.c));
+  list = options().filter(a => !q || a[1].toLowerCase().includes(q) || a[0].includes(q));
+  const cur = S.hold[popRow] && S.hold[popRow].c;
+  act = Math.max(0, list.findIndex(a => a[0] === cur));
+  $('#opts').innerHTML = list.map((a, k) => `<li role="option" id="o${k}" data-k="${k}" aria-selected="${k === act}" aria-disabled="${used.has(a[0])}">
+      <span class="badge">${a[2]}</span><span><b>${a[1]}</b><small>${a[0]}</small></span><em>${used.has(a[0]) ? '담음' : price(a[0]) ? won(price(a[0])) + '원' : ''}</em></li>`).join('')
+    || `<li class="none" aria-disabled="true">찾는 종목이 없어요. ${L.on ? '현재 ML이 지원하는 종목만 고를 수 있어요.' : '시총 상위 20종목만 지원해요.'}</li>`;
+  mark();
+}
+function mark() {
+  document.querySelectorAll('#opts li[data-k]').forEach(li => li.setAttribute('aria-selected', +li.dataset.k === act));
+  const el = $('#o' + act); if (el) { el.scrollIntoView({block:'nearest'}); $('#q').setAttribute('aria-activedescendant', 'o' + act); }
+}
+function choose(k) {
+  const li = $('#o' + k); if (!li || li.getAttribute('aria-disabled') === 'true') return;
+  S.hold[popRow].c = list[k][0];
+  if (!S.hold[popRow].n) S.hold[popRow].n = 1;
+  save(); const r = popRow; closePop(); renderRows();
+  const q = document.querySelector(`[data-qty="${r}"]`); if (q) { q.focus(); q.select(); }
+}
+$('#q').addEventListener('input', fill);
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { act = Math.min(list.length - 1, act + 1); mark(); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { act = Math.max(0, act - 1); mark(); e.preventDefault(); }
+  else if (e.key === 'Enter') { choose(act); e.preventDefault(); }
+  else if (e.key === 'Escape') { closePop(); e.preventDefault(); }
+});
+$('#opts').addEventListener('click', e => { const li = e.target.closest('li[data-k]'); if (li) choose(+li.dataset.k); });
+document.addEventListener('pointerdown', e => { if ($('#pop').classList.contains('on') && !e.target.closest('#pop') && !e.target.closest('[data-pick]')) closePop(); });
+addEventListener('resize', closePop);
+$('#stage').addEventListener('scroll', closePop);
+$('#rows').addEventListener('scroll', closePop);
+
+/* ---------- shocks ---------- */
+const toneC = v => v > 0 ? ' up' : v < 0 ? ' dn' : '';
+const fmtS = (v, u) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + `<small>${u}</small>`;
+function renderShocks() {
+  $('#shocks').innerHTML = SHOCKS.map(s => `<div class="tile${toneC(S.shock[s.k])}" id="tl-${s.k}"><span>${s.label}</span><div class="ctl">
+    <button type="button" data-sh="${s.k}" data-d="-1" aria-label="${s.label} 낮추기">−</button>
+    <output id="sv-${s.k}">${fmtS(S.shock[s.k], s.unit)}</output>
+    <button type="button" data-sh="${s.k}" data-d="1" aria-label="${s.label} 높이기">+</button></div></div>`).join('');
+}
+$('#shocks').addEventListener('click', e => {
+  const b = e.target.closest('[data-sh]'); if (!b) return;
+  const s = SHOCKS.find(x => x.k === b.dataset.sh);
+  S.shock[s.k] = Math.max(s.min, Math.min(s.max, S.shock[s.k] + s.step * +b.dataset.d));
+  $('#sv-' + s.k).innerHTML = fmtS(S.shock[s.k], s.unit); $('#tl-' + s.k).className = 'tile' + toneC(S.shock[s.k]); save();
+});
+$('#reset').addEventListener('click', () => { S.shock = {...DEF}; renderShocks(); save(); });
+
+/* ---------- run ---------- */
+function calc() {
+  const k = S.shock;
+  const rows = S.hold.filter(h => BY[h.c] && h.n > 0).map(h => {
+    const a = BY[h.c], b = a[4];
+    const cf = [b[0] * k.fx, b[1] * k.rate / 100, b[2] * k.wti / 10, b[3] * k.vix / 10];
+    const r = cf[0] + cf[1] + cf[2] + cf[3];
+    const v = a[3] * h.n;
+    return {name:a[1], code:a[0], sector:SECTOR[a[0]], n:h.n, v, r, cf, b, pnl:v * r / 100};
+  });
+  const v = rows.reduce((s, x) => s + x.v, 0), pnl = rows.reduce((s, x) => s + x.pnl, 0);
+  return {rows, v, pnl, pct: v ? pnl / v * 100 : 0};
+}
+let R0 = null;
+$('#run').addEventListener('click', () => {
+  if (!S.hold.some(h => BY[h.c] && h.n > 0)) { $('#msg').textContent = '종목을 고르고 보유 수량을 1주 이상 입력해 주세요.'; return; }
+  if (L.on) { runLive(); return; }
+  R0 = calc(); go('calc');
+  setTimeout(() => showResult(), reduce ? 300 : 1900);
+});
+function showResult(k = S.shock) {
+  const R = R0;
+  $('#incrW').hidden = !R.live;
+  if (R.live) $('#incr').textContent = sgn(R.inc) + '원';
+  $('#rnote').textContent = R.live
+    ? `${mdl(R.model)} 모델이 ${R.asOf}까지의 시장 데이터로 예측한 5거래일 뒤 결과예요. 그래프의 중간 흐름은 이해를 돕기 위한 표시이고, 투자 권유가 아닌 참고용이에요.`
+    : '예시 가격·예시 계수로 만든 연출용 결과입니다. 실제 ML 분석 결과가 아닙니다.';
+  $('#more').disabled = !!(R.live && !R.ready);
+  $('#more').title = R.live && !R.ready ? '결과 저장에 실패해 AI 회의를 열 수 없어요. 다시 계산해 주세요.' : '';
+  $('#pct').textContent = pctf(R.pct);
+  $('#held').textContent = won(R.v) + '원';
+  $('#resRows').innerHTML = R.rows.map(x => `<div class="res"><span>${x.name}<small>${won(x.n)}주</small></span>
+    <em>${pctf(x.r)}</em><b style="color:${x.pnl >= 0 ? 'var(--pos)' : 'var(--neg)'}">${sgn(x.pnl)}원</b></div>`).join('');
+  $('#cond').innerHTML = SHOCKS.map(s => `<span${k[s.k] ? ' class="on"' : ''}>${s.label} ${(k[s.k] > 0 ? '+' : '') + k[s.k]}${s.unit}</span>`).join('');
+  go('result');
+  $('#result .fig').classList.remove('drawn'); draw();
+  setTimeout(() => $('#result .fig').classList.add('drawn'), 450);
+  count(R.pnl);
+}
+function count(to) {
+  const el = $('#big'), t0 = performance.now(), D = reduce ? 1 : 1300;
+  const step = t => {
+    const p = Math.min(1, (t - t0 - 350) / D), e = p <= 0 ? 0 : 1 - Math.pow(1 - p, 3);
+    el.innerHTML = sgn(to * e) + '<small>원</small>';
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- detail: 네 분석가 (예시 해설, 결과 숫자에서 만들어짐) ---------- */
+const FN = ['원/달러 환율', '미국 10년 금리', 'WTI 유가', 'VIX'];
+const pp = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2) + '%p';
+const shockTxt = j => { const s = SHOCKS[j], v = S.shock[s.k]; return (v > 0 ? '+' : '') + v + s.unit; };
+const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return w + ((c - 44032) % 28 ? a : b); };
+function explain(R) {
+  const k = S.shock, V = R.v, ks = [k.fx, k.rate, k.wti, k.vix];
+  const F = [0, 1, 2, 3].map(j => R.rows.reduce((s, x) => s + x.v * x.cf[j], 0) / V);
+  const ord = [0, 1, 2, 3].filter(j => ks[j]).sort((a, b) => Math.abs(F[b]) - Math.abs(F[a]));
+  const why = [
+    v => v > 0 ? '원화 약세는 해외 매출이 큰 종목의 원화 환산 이익을 늘리는 쪽으로 작용해요.' : '원화 강세는 수출 종목의 원화 환산 이익을 줄이는 쪽으로 작용해요.',
+    v => v > 0 ? '미국 금리가 오르면 미래 이익을 할인하는 폭이 커져 성장주 평가에 부담이 돼요. 은행·보험은 이자 마진 기대로 버티는 편이에요.' : '미국 금리가 내리면 할인 부담이 줄어 성장주 평가에 우호적이에요. 은행·보험엔 이자 마진 축소가 부담이에요.',
+    v => v > 0 ? '유가가 오르면 원가 부담이 큰 업종은 불리하고, 에너지·전력 설비 쪽은 상대적으로 유리해요.' : '유가가 내리면 원가 부담은 줄지만, 에너지·전력 설비 쪽 기대는 약해져요.',
+    v => v > 0 ? 'VIX가 오르면 위험 회피 심리가 커져 대부분 종목에 하락 압력이 생겨요.' : 'VIX가 내리면 위험 선호가 살아나 대부분 종목에 우호적이에요.'
+  ];
+  const top = ord[0];
+  const macro = ord.length ? {
+    text:`네 가지 충격 중 결과를 가장 크게 움직인 건 ${FN[top]} ${shockTxt(top)}예요. ${why[top](ks[top])} 전체 ${pctf(R.pct)} 가운데 ${pp(F[top])}가 여기서 나왔어요.`,
+    pts: ord.map(j => [`${FN[j]} ${shockTxt(j)}`, pp(F[j])])
+  } : {text:'입력한 충격이 모두 0이라 거시 요인에서 오는 변화가 없어요. 위쪽 조건을 바꿔 다시 살펴보세요.', pts:[]};
+  const rows = R.rows.slice().sort((a, b) => b.r - a.r), best = rows[0], worst = rows[rows.length - 1];
+  const secs = [...new Set(R.rows.map(x => x.sector))];
+  const mainF = x => [0, 1, 2, 3].sort((a, b) => Math.abs(x.cf[b]) - Math.abs(x.cf[a]))[0];
+  const market = {
+    text: rows.length > 1
+      ? `보유 종목은 ${secs.join('·')} 업종에 걸쳐 있어요. 같은 충격이라도 업종마다 반응이 달라서 ${josa(best.name, '은', '는')} ${pctf(best.r)}, ${josa(worst.name, '은', '는')} ${pctf(worst.r)}로 갈렸어요.`
+      : `${best.name}(${best.sector}) 한 종목이라 업종 사이 상쇄 없이 충격이 그대로 반영돼요. 이 종목은 ${FN[mainF(best)]}에 가장 민감하게 반응했어요.`,
+    pts: rows.map(x => [`${x.name} · ${x.sector}, ${FN[mainF(x)]}에 가장 민감`, pp(x.cf[mainF(x)])])
+  };
+  const loss = R.rows.slice().sort((a, b) => a.pnl - b.pnl)[0];
+  const dVix = R.rows.reduce((s, x) => s + x.v * x.b[3] / 100, 0);
+  const dRate = R.rows.reduce((s, x) => s + x.v * x.b[1] * .5 / 100, 0);
+  const flip = R.pnl - 2 * R.rows.reduce((s, x) => s + x.v * x.cf[0] / 100, 0);
+  const risk = {
+    text: loss.pnl < 0
+      ? `가장 큰 부담은 ${loss.name}이에요. 이 종목에서만 ${sgn(loss.pnl)}원이 나왔어요. 지금 결과는 조건이 조금만 더 나빠져도 방향이 바뀔 수 있어서, 충격을 한 단계씩 키웠을 때를 함께 봐야 해요.`
+      : `이번 조건에선 손실 종목이 없어요. 다만 아래처럼 조건이 조금만 바뀌어도 합계가 크게 달라질 수 있어요.`,
+    pts:[[`VIX가 10pt 더 오르면`, sgn(dVix) + '원'], [`미국 금리가 50bp 더 오르면`, sgn(dRate) + '원'], [`환율 충격이 반대(${-k.fx}%)라면 합계`, sgn(flip) + '원']]
+  };
+  const byW = R.rows.slice().sort((a, b) => b.v - a.v), big = byW[0];
+  const ups = R.rows.filter(x => x.pnl > 0), downs = R.rows.filter(x => x.pnl < 0);
+  const port = {
+    text:`${big.name} 비중이 ${(big.v / V * 100).toFixed(0)}%로 가장 커서 결과의 방향을 사실상 정해요.` +
+      (ups.length && downs.length ? ` ${ups.map(x => x.name).join('·')}의 이익이 ${downs.map(x => x.name).join('·')}의 손실을 일부 상쇄했어요.` : rows.length > 1 ? ' 모든 종목이 같은 방향으로 움직여 분산 효과는 크지 않았어요.' : ' 한 종목이라 분산 효과는 없어요.'),
+    pts: byW.map(x => [`${x.name} 비중 ${(x.v / V * 100).toFixed(1)}%`, sgn(x.pnl) + '원'])
+  };
+  return {
+    sum:`네 관점 요약 · ${ord.length ? FN[top] + ' 효과가 가장 컸고, ' : ''}합계 ${sgn(R.pnl)}원(${pctf(R.pct)})이에요.`,
+    list:[
+      {name:'김진우', role:'거시경제 분석가', mono:'김', tag:'거시경제', ...macro, cav:'충격이 실제로 일어날 가능성은 계산하지 않아요. 5거래일 동안 이 조건이 유지된다는 가정이에요.'},
+      {name:'윤서연', role:'장중 시장상태 분석가', mono:'윤', tag:'시장상태', ...market, cav:'지금은 예시 시장 상태 기준이에요. 실시간 스냅샷이 연결되면 기준 시각과 관측 범위를 함께 보여드려요.'},
+      {name:'신강호', role:'리스크 분석가', mono:'신', tag:'리스크', ...risk, cav:'지금 숫자는 하나의 중심값이에요. 큰 손실이 날 수 있는 꼬리 구간은 아직 보여주지 않아요.'},
+      {name:'강유나', role:'포트폴리오 분석가', mono:'강', tag:'포트폴리오', ...port, cav:'보유 비중과 기여도를 설명하는 해설이며 매매 권유가 아니에요.'}
+    ]
+  };
+}
+const P = [
+  {n:'김진우', r:'거시경제', m:'김', bg:'#ece9fb'}, {n:'윤서연', r:'시장상태', m:'윤', bg:'#e4edf7'},
+  {n:'신강호', r:'리스크', m:'신', bg:'#f6e8ee'}, {n:'강유나', r:'포트폴리오', m:'강', bg:'#e7f1ea'}
+];
+const ROUNDS = ['의견', '반박', '재반박'];
+function debate(R) {
+  const E = explain(R), k = S.shock, V = R.v, ks = [k.fx, k.rate, k.wti, k.vix];
+  const F = [0, 1, 2, 3].map(j => R.rows.reduce((s, x) => s + x.v * x.cf[j], 0) / V);
+  const ord = [0, 1, 2, 3].filter(j => ks[j]).sort((a, b) => Math.abs(F[b]) - Math.abs(F[a]));
+  const top = ord[0], sec = ord[1];
+  const byW = R.rows.slice().sort((a, b) => b.v - a.v), big = byW[0];
+  const lead = R.rows.slice().sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))[0];
+  const dVix = R.rows.reduce((s, x) => s + x.v * x.b[3] / 100, 0);
+  const flip = R.pnl - 2 * R.rows.reduce((s, x) => s + x.v * x.cf[0] / 100, 0);
+  const tf = top === undefined ? '입력한 충격' : FN[top];
+  const msgs = [];
+  E.list.forEach((p, i) => msgs.push({w:i, rd:0, text:p.text, chips:p.pts.slice(0, 2).map(([a, b]) => `${a} ${b}`)}));
+  // 반박
+  msgs.push({w:2, rd:1, to:0, text: top !== undefined
+    ? `${tf} 효과 ${pp(F[top])}는 5거래일 내내 이 수준이 유지된다는 가정 위에 있어요. ${k.fx ? `환율 충격이 반대였다면 합계가 ${sgn(flip)}원이 돼요.` : ''} 결론의 근거로 삼기엔 흔들릴 수 있어요.`
+    : '충격이 없으니 결과는 0에 가까워요. 이 상태로는 판단할 근거가 없어요.'});
+  msgs.push({w:0, rd:1, to:2, text: sec !== undefined
+    ? `맞아요. 그래서 결론엔 ${tf}만 쓰지 말고 ${FN[sec]}(${pp(F[sec])})를 함께 적어야 해요. 두 요인이 ${Math.sign(F[top]) !== Math.sign(F[sec]) ? '반대로 작용해 순효과가 줄었어요' : '같은 방향이라 효과가 겹쳤어요'}.`
+    : `동의해요. 이번엔 충격이 하나라 해석은 단순하지만, 크기를 바꿔 보면 결과가 선형으로 커진다는 점도 같이 봐야 해요.`});
+  msgs.push({w:3, rd:1, to:1, text:`업종 차이도 있지만 결과를 먼저 정하는 건 비중이에요. ${big.name}이 ${(big.v / V * 100).toFixed(0)}%를 차지해요.`});
+  msgs.push({w:1, rd:1, to:3, text: lead.code !== big.code
+    ? `비중만 보면 놓치는 게 있어요. 손익 기여 1위는 ${lead.name}(${sgn(lead.pnl)}원)이에요. 반응 크기가 비중을 이겼어요.`
+    : `이번엔 비중 1위인 ${lead.name}이 손익 기여(${sgn(lead.pnl)}원)도 가장 커요. 비중과 민감도가 같은 쪽을 가리켜요.`});
+  // 재반박
+  msgs.push({w:0, rd:2, to:1, text:'다만 업종 반응은 지금 예시 계수로만 본 거예요. 실시간 시장 상태가 연결되기 전까진 확정 해석으로 쓰지 않는 게 맞아요.'});
+  msgs.push({w:1, rd:2, to:2, text:`VIX가 10pt 더 오르면 ${sgn(dVix)}원이 추가돼요. 모든 종목이 같은 방향이라 분산으로 줄지 않는 위험이에요. 리스크 쪽 경고에 동의해요.`});
+  msgs.push({w:2, rd:2, to:3, text:'비중을 줄이자는 식의 표현은 매매 권유로 읽힐 수 있어요. 결론엔 집중도가 높다는 사실만 남기죠.'});
+  msgs.push({w:3, rd:2, to:0, text:`좋아요. 결론은 ${tf} 효과가 가장 컸고 합계는 ${sgn(R.pnl)}원이라는 데서 출발하고, 가정의 한계를 같이 적을게요.`});
+  const concl = {
+    text: top !== undefined
+      ? `${tf} ${shockTxt(top)}의 효과가 가장 컸고${sec !== undefined ? `, ${FN[sec]}가 ${Math.sign(F[top]) !== Math.sign(F[sec]) ? '일부를 상쇄해' : '방향을 더해'}` : ''} 5거래일 뒤 내 포트폴리오는 ${sgn(R.pnl)}원(${pctf(R.pct)})으로 추정돼요.`
+      : '입력한 충격이 없어 포트폴리오 변화가 거의 없어요.',
+  };
+  return {id:Date.now(), at:new Date().toISOString(), kind:'test', shock:{...k}, R, msgs, concl};
+}
+const msgHTML = (m, isNew) => `<div class="msg${isNew ? ' new' : ''}">
+  <div class="hd"><b>${P[m.w].n}</b><span>${P[m.w].r}</span></div>
+  <div class="bub">${m.to !== undefined ? `<span class="to">@${P[m.to].n}</span>` : ''}${m.text}</div>
+  ${m.chips && m.chips.length ? `<div class="chips">${m.chips.map(c => `<span>${c}</span>`).join('')}</div>` : ''}</div>`;
+const divHTML = rd => `<div class="divider">${rd + 1}라운드 · ${ROUNDS[rd]}</div>`;
+const FS = ['환율', '금리', '유가', 'VIX'];
+function refs(M) {
+  const ks = [M.shock.fx, M.shock.rate, M.shock.wti, M.shock.vix], V = M.R.v || 1;
+  const F = [0, 1, 2, 3].map(j => M.R.rows.reduce((s, x) => s + x.v * x.cf[j], 0) / V);
+  const top = [0, 1, 2, 3].filter(j => ks[j]).sort((a, b) => Math.abs(F[b]) - Math.abs(F[a]))[0];
+  const big = M.R.rows.slice().sort((a, b) => b.v - a.v)[0];
+  const q = encodeURIComponent(big.name + ' ' + (top === undefined ? '주가' : FS[top]));
+  return `<ul class="refs">
+    <li><span class="rk">ML 결과</span><button type="button" data-ml="${M.id}">조건부 중심값 ${pctf(M.R.pct)} · 종목별 결과 보기<i>→</i></button></li>
+    <li><span class="rk">DART 공시</span><a href="https://dart.fss.or.kr/" target="_blank" rel="noopener">${big.name} 최근 공시 · DART 전자공시<i>↗</i></a></li>
+    <li><span class="rk">참고 뉴스</span><a href="https://search.naver.com/search.naver?where=news&query=${q}" target="_blank" rel="noopener">${big.name} · ${top === undefined ? '시장' : FS[top]} 관련 뉴스<i>↗</i></a></li></ul>`;
+}
+const conclHTML = M => `<h3>최종 결론</h3><p>${M.concl.text}</p>${refs(M)}`;
+const logHTML = msgs => msgs.map((m, i) => (i === 0 || msgs[i - 1].rd !== m.rd ? divHTML(m.rd) : '') + msgHTML(m)).join('');
+function fillPanel(pre, M, done) {
+  if (pre === 'd') $('#detail .rpanel').classList.remove('ml');
+  if (pre === 'd') $('#detail .rpanel').classList.toggle('done', !!(done && M.summary));
+  if (!M.R) { $('#' + pre + 'Num').innerHTML = ''; $('#' + pre + 'Meta').textContent = ''; $('#' + pre + 'Chart').innerHTML = ''; const c = $('#' + pre + 'Concl'); c.className = 'concl'; c.innerHTML = liveConclHTML(M); fit(); return; }
+  $('#' + pre + 'Num').innerHTML = sgn(M.R.pnl) + '<small>원</small>';
+  $('#' + pre + 'Meta').innerHTML = `가상 손익 <b>${pctf(M.R.pct)}</b> · 보유 <b>${won(M.R.v)}원</b>`;
+  const fig = $('#' + pre + 'Chart').parentNode; fig.classList.remove('drawn');
+  draw($('#' + pre + 'Chart'), M.R); setTimeout(() => fig.classList.add('drawn'), 300);
+  const c = $('#' + pre + 'Concl');
+  c.className = 'concl' + (done ? ' in' : '');
+  c.innerHTML = M.live ? liveConclHTML(M) : done ? conclHTML(M) : '<p class="wait">네 분석가가 회의 중이에요.</p>';
+  fit();
+}
+function setSteps(labels) { $('#steps').innerHTML = labels.map(t => `<span>${t}</span>`).join(''); }
+function steps(i) { document.querySelectorAll('#steps span').forEach((s, j) => s.className = j < i ? 'done' : j === i ? 'on' : ''); }
+let CUR = null, run = 0;
+/* (예전 시안 회의 진행은 startLive의 시안 모드로 대체) */
+/* ---------- minutes: 정규회의 3번 + 내가 저장한 테스트 ---------- */
+let MIN = [];
+try { MIN = JSON.parse(localStorage.getItem('whatif-minutes') || '[]'); } catch (e) {}
+const saveMins = () => { try { localStorage.setItem('whatif-minutes', JSON.stringify(MIN.slice(0, 30))); } catch (e) {} };
+const SLOTS = [
+  {t:'08:30', title:'장 전 정규회의', shock:{fx:1, rate:25, wti:-5, vix:5}},
+  {t:'13:00', title:'장 중 정규회의', shock:{fx:2, rate:0, wti:0, vix:10}},
+  {t:'15:40', title:'장 마감 후 정규회의', shock:{fx:-1, rate:-25, wti:5, vix:-5}}
+];
+function regulars() {
+  const d = new Date(), saved = S.shock, hold = S.hold;
+  if (!S.hold.some(h => BY[h.c] && h.n > 0)) S.hold = [{c:'005930', n:10}, {c:'005380', n:5}];
+  const out = SLOTS.map((sl, i) => {
+    const [h, m] = sl.t.split(':'); const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), +h, +m);
+    S.shock = sl.shock; const R = calc(); const M = debate(R); S.shock = saved;
+    return {...M, id:'reg' + i, at:at.toISOString(), kind:'reg', title:sl.title};
+  });
+  S.hold = hold; return out;
+}
+const testTitle = M => {
+  const parts = SHOCKS.filter(s => M.shock[s.k]).slice(0, 2).map(s => `${FS[SHOCKS.indexOf(s)]} ${(M.shock[s.k] > 0 ? '+' : '') + M.shock[s.k]}${s.unit}`);
+  return '스트레스 테스트 · ' + (parts.join(' · ') || '충격 없음');
+};
+const day = iso => { const d = new Date(iso); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; };
+const hm = iso => { const d = new Date(iso); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+let ALL = [], sel = null;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove('on'), 2200); }
+function showMinutes(id) {
+  const tests = MIN.map(m => ({...m, kind:'test', title:testTitle(m)}));
+  ALL = [...regulars(), ...tests].sort((a, b) => new Date(b.at) - new Date(a.at));
+  sel = ALL.find(m => m.id === id) || ALL[0];
+  $('#msub').textContent = `정규회의 3 · 테스트 ${tests.length}`;
+  $('#mlist').innerHTML = ALL.map(m => `<li><button type="button" class="mitem" data-id="${m.id}" aria-current="${m.id === sel.id}">
+    <span class="top"><span>${day(m.at)} · ${hm(m.at)}</span><span class="tag${m.kind === 'reg' ? ' reg' : ''}">${m.kind === 'reg' ? '정규회의' : '스트레스 테스트'}</span></span>
+    <b>${m.title}</b></button></li>`).join('');
+  const cond = SHOCKS.map(s => `${s.label} ${(sel.shock[s.k] > 0 ? '+' : '') + sel.shock[s.k]}${s.unit}`);
+  $('#mmain').innerHTML = `<div class="mhead"><span class="tag${sel.kind === 'reg' ? ' reg' : ''}">${sel.kind === 'reg' ? '정규회의' : '스트레스 테스트'}</span>
+      <h3>${sel.title}</h3><p class="mm">${day(sel.at)} · ${hm(sel.at)} · ${sel.R.rows.map(x => x.name).join(', ')}</p>
+      <div class="chips">${cond.map(c => `<span>${c}</span>`).join('')}</div></div>
+    <div class="msum"><div><p class="eyebrow" style="text-align:left">My portfolio · 5 days</p>
+        <p class="rnum">${sgn(sel.R.pnl)}<small>원</small></p><p class="rmeta" style="text-align:left">가상 손익 <b>${pctf(sel.R.pct)}</b> · 보유 <b>${won(sel.R.v)}원</b></p>
+        <div class="fig sm"><svg id="mChart" role="img" aria-label="이 회의의 5거래일 가상 경로"></svg></div></div>
+      <div class="concl">${conclHTML(sel)}</div></div>
+    <div class="mlog">${logHTML(sel.msgs)}</div>
+    <div class="mfoot links">${sel.kind === 'test' ? '<button type="button" class="linkbtn" id="delMin">이 회의록 삭제</button>' : ''}</div>
+    <p class="note" style="text-align:left">정규회의는 매일 08:30 · 13:00 · 15:40에 열려요. 지금 보이는 정규회의는 내 보유 종목으로 만든 예시예요.</p>`;
+  if (S.view !== 'minutes') go('minutes');
+  requestAnimationFrame(() => { draw($('#mChart'), sel.R); $('#mChart').parentNode.classList.add('drawn'); });
+}
+$('#mmain').addEventListener('click', e => {
+  if (e.target.closest('#delMin') && sel) { MIN = MIN.filter(m => m.id !== sel.id); saveMins(); toast('회의록을 삭제했어요'); showMinutes(); }
+});
+document.addEventListener('click', e => {
+  const lr = e.target.closest('[data-mlrun]');
+  if (lr) { const id = lr.dataset.mlrun, R = runs()[id] || [CUR, LSEL && LSEL.M].filter(Boolean).map(m => m.R).find(r => r && String(r.id) === id); if (R) showMlInRing(R); return; }
+  const back = e.target.closest('[data-mlback]');
+  if (back) { hideMlInRing(); return; }
+  const b = e.target.closest('[data-ml]'); if (!b) return;
+  const pool = [CUR, ...ALL].filter(Boolean), id = b.dataset.ml;
+  const M = pool.find(m => String(m.id) === id); if (!M) return;
+  showMlInRing({...M.R, shock:M.shock});
+});
+/* =================== LIVE: 실제 API 연결 =================== */
+async function api(path, opt = {}) {
+  const r = await fetch('/api' + path, {cache:'no-store', ...opt, headers:{'Content-Type':'application/json', ...(opt.headers || {})}});
+  if (r.status === 401 || r.redirected) { setUser(''); go('login'); throw new Error('로그인이 필요해요.'); }
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    const d = j.detail;
+    throw new Error(typeof d === 'string' ? d
+      : d && d.code === 'unsupported_assets' ? `현재 ML이 지원하지 않는 종목이에요: ${d.asset_ids.map(nm).join(', ')}`
+      : d && d.errors ? d.errors.join(' ') : d && d.message ? d.message
+      : Array.isArray(d) ? d.map(x => x.msg).join(' ') : `요청이 실패했어요 (${r.status}).`);
+  }
+  return j;
+}
+const runs = () => { try { return JSON.parse(localStorage.getItem('whatif-runs') || '{}'); } catch (e) { return {}; } };
+function keepRun(R) { try { const all = runs(); all[R.id] = R; const ks = Object.keys(all); if (ks.length > 30) ks.sort((a, b) => (all[a].at || '').localeCompare(all[b].at || '')).slice(0, ks.length - 30).forEach(k => delete all[k]); localStorage.setItem('whatif-runs', JSON.stringify(all)); } catch (e) {} }
+const shares = () => { try { return JSON.parse(localStorage.getItem('whatif-shares') || '{}'); } catch (e) { return {}; } };
+function acceptQuotes(list) {
+  for (const q of list || []) {
+    if (!q || q.is_mock !== false || !q.asset_id || !Number.isFinite(Number(q.price))) continue;
+    L.price[q.asset_id] = Number(q.price); L.priceAt = q.event_time || q.received_at || L.priceAt;
+  }
+}
+async function loadLive() {
+  clearTimeout(L.timer);
+  const jobs = [];
+  if (!L.support) jobs.push(api('/stress/support').then(m => { L.support = new Set(m.supported_assets || []); }));
+  jobs.push(api('/quotes/latest').then(j => acceptQuotes(j.quotes || (j.data && j.data.quotes))));
+  const res = await Promise.allSettled(jobs);
+  const bad = res.find(x => x.status === 'rejected');
+  if (!L.holdLoaded) {
+    L.holdLoaded = true;
+    try {
+      const h = await api('/me/holdings'), sh = shares();
+      if (h.holdings && h.holdings.length) S.hold = h.holdings.slice(0, MAX).map(x => {
+        const px = L.price[x.asset_id];
+        return {c:x.asset_id, n: x.shares || sh[x.asset_id] || (px ? Math.max(1, Math.round(x.amount_krw / px)) : 1)};
+      });
+    } catch (e) { $('#msg').textContent = '저장된 보유 종목을 불러오지 못했어요: ' + e.message; }
+  }
+  if (S.view === 'setup') { renderRows(); if (bad) $('#msg').textContent = bad.reason.message; }
+  if (S.view === 'setup') L.timer = setTimeout(loadLive, 30000);   // 현재가 30초마다 갱신
+}
+async function runLive() {
+  const rows = S.hold.filter(h => BY[h.c] && h.n > 0);
+  try { const j = await api('/quotes/latest'); acceptQuotes(j.quotes || (j.data && j.data.quotes)); } catch (e) {}   // 계산 직전 현재가로 평가금액을 다시 잡음
+  const miss = rows.filter(h => !L.price[h.c]);
+  if (miss.length) { $('#msg').textContent = `현재가를 아직 받지 못한 종목이 있어요: ${miss.map(h => nm(h.c)).join(', ')}`; return; }
+  if (L.support) { const un = rows.filter(h => !L.support.has(h.c)); if (un.length) { $('#msg').textContent = `현재 ML이 지원하지 않는 종목이에요: ${un.map(h => nm(h.c)).join(', ')}`; return; } }
+  const positions = rows.map(h => ({asset_id:h.c, value_krw:Math.round(L.price[h.c] * h.n)}));
+  const k = {...S.shock}, t0 = performance.now();
+  go('calc');
+  try {
+    try {                                   // 내 보유 종목 저장 → 정규회의 대상이 됨
+      await api('/me/holdings', {method:'PUT', body:JSON.stringify({holdings:rows.map(h => ({asset_id:h.c, amount_krw:Math.round(L.price[h.c] * h.n), shares:h.n}))})});
+      const sh = shares(); rows.forEach(h => sh[h.c] = h.n); localStorage.setItem('whatif-shares', JSON.stringify(sh));
+    } catch (e) { toast('보유 종목 저장은 실패했어요. 계산은 계속해요.'); }
+    const j = await api('/stress/analyze', {method:'POST', body:JSON.stringify({positions, model:'catboost',
+      shocks:{fx_pct:k.fx, us_rate_bp:k.rate, wti_pct:k.wti, vix_points:k.vix}})});
+    const nOf = Object.fromEntries(rows.map(h => [h.c, h.n]));
+    const out = j.assets.map(a => ({name:nm(a.asset_id), code:a.asset_id, n:nOf[a.asset_id], v:a.holding_krw,
+      r:a.scenario_return_pct, pnl:a.hypothetical_pnl_krw, base:a.baseline_model_return_pct, inc:a.shock_incremental_pnl_krw}));
+    const v = out.reduce((s, x) => s + x.v, 0), m = j.assets[0].model_output || {};
+    R0 = {live:true, id:j.analysis_id, ready:!!(j.ai_handoff && j.ai_handoff.ready), at:new Date().toISOString(), shock:k,
+      rows:out, v, pnl:j.portfolio_hypothetical_pnl_krw, pct: v ? j.portfolio_hypothetical_pnl_krw / v * 100 : 0,
+      inc:j.portfolio_shock_incremental_pnl_krw, model:j.model, asOf:m.feature_as_of_trading_date || '', pkg:m.package_id || ''};
+    keepRun(R0);
+    setTimeout(() => showResult(k), Math.max(0, (reduce ? 300 : 1600) - (performance.now() - t0)));
+  } catch (e) { go('setup'); $('#msg').textContent = e.message; }
+}
+
+/* ML 결과를 링 안에서만 보여줌 (화면 전체·링 위치는 그대로) */
+function mlHTML(R) {
+  const k = R.shock || {};
+  return `<p class="eyebrow" style="margin-top:14px">ML result</p>
+    <div>${R.rows.map(x => `<div class="res"><span>${esc(x.name)}<small>${x.n ? won(x.n) + '주' : ''}</small></span><em>${pctf(x.r)}</em><b style="color:${x.pnl >= 0 ? 'var(--pos)' : 'var(--neg)'}">${sgn(x.pnl)}원</b></div>`).join('')}</div>
+    <div class="cond" style="margin-top:12px">${SHOCKS.map(s => `<span>${s.label} ${(k[s.k] > 0 ? '+' : '') + (k[s.k] || 0)}${s.unit}</span>`).join('')}</div>
+    <p class="note">${R.live ? `${esc(mdl(R.model))} 모델 · ${esc(R.asOf)}까지의 데이터${R.inc != null ? ` · 충격이 없을 때보다 ${sgn(R.inc)}원` : ''}` : '예시 계수로 만든 연출용 결과'}</p>
+    <div class="links"><button type="button" class="linkbtn" data-mlback>결과로 돌아가기</button></div>`;
+}
+function showMlInRing(R) {
+  if (S.view === 'detail') { $('#dMl').innerHTML = mlHTML(R); $('#detail .rpanel').classList.add('ml'); fit(); return; }
+  if (S.view === 'minutes') { const c = $('#mmain .concl'); if (c) c.innerHTML = mlHTML(R); return; }
+  R0 = R; S.shock = {...R.shock}; showResult(R.shock);
+}
+function hideMlInRing() {
+  if (S.view === 'detail') { $('#detail .rpanel').classList.remove('ml'); fit(); return; }
+  if (S.view === 'minutes' && LSEL && LCACHE[LSEL.debate_id]) { const c = $('#mmain .concl'); if (c) c.innerHTML = liveConclHTML(LCACHE[LSEL.debate_id]); }
+  else if (S.view === 'minutes' && sel && sel.concl) { const c = $('#mmain .concl'); if (c) c.innerHTML = conclHTML(sel); }
+}
+
+/* =================== AI 회의: 차례 발언 (실서버·시안 공통) =================== */
+const ROLE_I = {macro:0, market:1, risk:2, portfolio:3};
+const ROLE_ORDER = ['portfolio', 'macro', 'market', 'risk'];
+const STANCE_T = {first:'첫 의견', agree:'동의', disagree:'반대', partial:'일부 동의', revise:'의견 수정'};
+const LBL = {portfolio:'포트폴리오 전문가', macro:'거시경제 전문가', market:'시장상태 전문가', risk:'리스크관리 전문가'};
+const who = r => ({n:LBL[r] || r, r:''});
+const paras = t => esc(t).split(/\n{2,}|\n/).filter(Boolean).map(x => `<p>${x}</p>`).join('');
+function talkParts(p) {           // 예전 형식("결론: … 근거: …")도 받아서 말풍선/근거로 나눔
+  const t = String(p.display_text || '').trim();
+  if (!t) return {head:String(p.summary_text || '').trim(), rest:''};
+  const body = t.replace(/^\s*결론\s*[:：]\s*/, '');
+  const k = body.search(/\n?\s*근거\s*[:：]/);
+  return k < 0 ? {head:body, rest:''} : {head:body.slice(0, k).trim(), rest:body.slice(k).trim()};
+}
+const whyHTML = t => esc(t).split(/\n{2,}/).filter(Boolean).map(par => `<p>${par.replace(/\n/g, '<br>').replace(/(^|<br>)(\s*-?\s*)([가-힣·A-Za-z ]{2,14})\s*:/g, '$1$2<b>$3:</b>')}</p>`).join('');
+function fmtD(x) {
+  const v = Number(x.value), u = x.unit;
+  if (u === 'KRW') return (v < 0 ? '−' : '') + won(Math.abs(v)) + '원';
+  if (u === '%' || u === '%p') return (Math.round(v * 100) / 100) + u;
+  if (u === 'ratio') return (v * 100).toFixed(1) + '%';
+  if (u === 'corr') return v.toFixed(2);
+  if (u === 'bp' || u === 'pt') return (Math.round(v * 100) / 100) + u;
+  return String(Math.round(v * 100) / 100) + (u && u !== 'mixed' ? u : '');
+}
+function evidHTML(p, M) {          // 발언이 근거로 쓴 수치(D)와 공시·뉴스(S)
+  const d = (p.structured_source_ids || []).map(id => M.d[id]).filter(Boolean).slice(0, 6)
+    .map(x => `<span>${esc((x.asset_name ? x.asset_name + ' ' : '') + (x.label || ''))} <b>${esc(fmtD(x))}</b></span>`);
+  const s = (p.rag_source_ids || []).map(id => M.src[id]).filter(x => x && x.u).slice(0, 4)
+    .map(x => `<a href="${esc(x.u)}" target="_blank" rel="noopener">${esc(x.t)} ↗</a>`);
+  return d.length || s.length ? `<div class="chips">${d.join('')}${s.join('')}</div>` : '';
+}
+const claimsHTML = p => (p.claims || []).length ? `<ul class="clm">${p.claims.map(c => `<li>${esc(c.statement)}${c.change_reason ? `<em>바꾼 이유: ${esc(c.change_reason)}</em>` : ''}</li>`).join('')}</ul>` : '';
+const mdl = m => ({catboost:'CatBoost', lightgbm:'LightGBM', xgboost:'XGBoost'})[String(m || '').toLowerCase()] || m || 'ML';
+let msgSeq = 0;
+const reEsc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function linkTalk(text, toRole, refId) {   // 말풍선 안 '○○ 전문가님의 ‘…’는 말씀'을 그 발언으로 가는 밑줄 링크로
+  const lb = toRole && LBL[toRole];
+  if (!lb) return paras(text);
+  const re = new RegExp(reEsc(lb) + '님(?:의\\s*[‘“\'"][^’”\'"]{1,90}[’”\'"](?:는|라는|이라는)?\\s*(?:말씀|판단|의견|근거|지적|수정|주장))?');
+  let done = false;
+  return String(text).split(/\n{2,}|\n/).filter(Boolean).map(line => {
+    const m = done ? null : re.exec(line);
+    if (!m) return `<p>${esc(line)}</p>`;
+    done = true;
+    return `<p>${esc(line.slice(0, m.index))}<a href="#" class="ref r-${esc(toRole)}"${refId ? ` data-ref="${esc(refId)}"` : ''}>${esc(m[0])}</a>${esc(line.slice(m.index + m[0].length))}</p>`;
+  }).join('');
+}
+document.addEventListener('click', e => {
+  const a = e.target.closest('a.ref'); if (!a) return;
+  e.preventDefault();
+  const box = a.closest('.log, .mlog') || document, t = a.dataset.ref && box.querySelector(`[data-mid="${CSS.escape(a.dataset.ref)}"]`);
+  if (!t) return;
+  t.scrollIntoView({behavior:reduce ? 'auto' : 'smooth', block:'center'});
+  t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
+});
+function turnHTML(p, M, isNew) {
+  const w = who(p.role), st = p.stance || (p.phase === 'REBUTTAL' ? 'disagree' : 'first');
+  const rnd = (/^r(\d)/.exec(p.round_id || '') || [])[1];
+  const to = p.reply_to ? who(p.reply_to) : (p.reference_message_id && M.byId[p.reference_message_id] ? who(M.byId[p.reference_message_id]) : null);
+  const q = M.quote[p.message_id];
+  const {head, rest} = talkParts(p), id = 'why' + (++msgSeq);
+  const revised = p.view_status === 'revised' || st === 'revise';
+  const reason = (p.claims || []).map(c => c.change_reason).find(Boolean);
+  const more = rest || (p.claims || []).length || (p.structured_source_ids || []).length || (p.rag_source_ids || []).length;
+  const toR = p.reply_to || (p.reference_message_id && M.byId[p.reference_message_id]);
+  return `<div class="msg turn r-${esc(p.role)}${isNew ? ' new' : ''}${revised ? ' revised' : ''}" data-mid="${esc(p.message_id)}">
+    <div class="hd"><b>${esc(w.n)}</b><i class="st st-${st}">${STANCE_T[st] || ''}</i></div>
+    <div class="bub">${linkTalk(head, toR, M.ref[p.message_id])}</div>
+    ${revised && reason ? `<div class="rv">의견을 바꾼 이유 · ${esc(reason)}</div>` : ''}
+    ${more ? `<button type="button" class="more" aria-expanded="false" aria-controls="${id}">근거 보기</button>
+    <div class="why" id="${id}">${rest ? whyHTML(rest) : ''}${claimsHTML(p)}${evidHTML(p, M)}</div>` : ''}</div>`;
+}
+function roundHTML(it) {
+  if (it.round === 1) return `<div class="mod"><b>스트레스 테스트 조건</b><p>${esc(it.agenda || '')}</p></div>`;
+  if (it.issue) return `<div class="mod"><b>남은 쟁점</b><p>의견이 아직 모이지 않았어요. 남은 쟁점은 ${esc(it.issue)}입니다.</p><small>${(it.speakers || []).map(r => esc(who(r).n)).join(' · ')} 님이 한 번 더 말씀해 주세요.</small></div>`;
+  return '';
+}
+const failHTML = r => `<p class="failmsg">${esc(who(r).n)}의 발언을 만들지 못했어요.</p>`;
+const itemHTML = (it, M, isNew) => it.kind === 'round' ? roundHTML(it) : it.kind === 'fail' ? failHTML(it.role) : turnHTML(it.p, M, isNew);
+document.addEventListener('click', e => {
+  const b = e.target.closest('.more'); if (!b) return;
+  const w = document.getElementById(b.getAttribute('aria-controls')); if (!w) return;
+  const on = !w.classList.contains('on'); w.classList.toggle('on', on);
+  b.setAttribute('aria-expanded', on); b.textContent = on ? '근거 접기' : '근거 보기';
+});
+const typingHTML = (role) => role ? `<div class="msg turn r-${role} new" id="typing"><div class="hd"><b>${esc(who(role).n)}</b><span>입력 중</span></div><div class="bub dots"><i></i><i></i><i></i></div></div>`
+  : '<div class="msg new" id="typing"><div class="hd"><b>분석가</b><span>다음 발언 준비 중</span></div><div class="bub dots"><i></i><i></i><i></i></div></div>';
+const readMs = it => {          // 사람이 읽는 속도에 맞춘 대기 시간
+  if (it.kind === 'round') return it.round === 1 || it.issue ? 2600 : 300;
+  if (it.kind === 'fail') return 1500;
+  if (it.kind !== 'msg') return 0;
+  const n = String(talkParts(it.p).head || '').length;
+  return Math.max(3000, Math.min(9000, 1000 + n * 70));
+};
+
+function newMeeting(R, id) {
+  return {live:true, id, R, items:[], byId:{}, last:{}, quote:{}, ref:{}, lastId:{}, board:{}, view:null, viewRound:0,
+          d:{}, src:{}, seen:new Set(), seq:0, summary:null, evidence:null, agenda:'', done:false, round:0, maxRound:2};
+}
+function liveApply(M, ev) {        // 이벤트 한 건 반영. 화면에 그릴 항목을 돌려줌 (중복은 event_id로 거름)
+  if (!ev || M.seen.has(ev.event_id)) return null;
+  M.seen.add(ev.event_id); M.seq = Math.max(M.seq, ev.seq || 0);
+  const p = ev.payload || {};
+  if (ev.type === 'debate.evidence_ready') {
+    M.evidence = p; if (p.agenda) M.agenda = p.agenda;
+    (p.disclosures || []).forEach(x => M.src[x.source_id] = {t:`공시 · ${x.asset_name || nm(x.asset_id)} ${x.title}`, u:x.url});
+    (p.web_news || []).forEach(x => { const c = (x.citations || [])[0]; M.src[x.source_id] = {t:`뉴스 · ${x.asset_name || nm(x.asset_id)}`, u:c && c.url}; });
+    (p.d_public || []).forEach(x => M.d[x.id] = x);
+    return null;
+  }
+  if (ev.type === 'debate.round') {
+    const it = {kind:'round', round:p.round, agenda:p.agenda || M.agenda, speakers:p.speakers, issue:p.issue};
+    M.round = p.round; if (p.round > 2) M.maxRound = p.round; M.items.push(it); return it;
+  }
+  if (ev.type === 'message.created') {
+    M.byId[p.message_id] = p.role;
+    M.ref[p.message_id] = p.reference_message_id || (p.reply_to && M.lastId[p.reply_to]) || null; M.lastId[p.role] = p.message_id;
+    if (p.silent || !String(p.display_text || p.summary_text || '').trim()) return null;
+    if (p.reply_to && M.last[p.reply_to]) M.quote[p.message_id] = M.last[p.reply_to];
+    M.last[p.role] = p.summary_text || talkParts(p).head;
+    M.board[p.role] = {stance:p.stance || 'first', text:M.last[p.role]};
+    const it = {kind:'msg', p}; M.items.push(it); return it;
+  }
+  if (ev.type === 'message.failed') { const it = {kind:'fail', role:p.role}; M.items.push(it); return it; }
+  if (ev.type === 'debate.summary') { M.summary = p; return {kind:'summary'}; }
+  if (ev.type === 'debate.completed') { M.done = true; return {kind:'done'}; }
+  if (ev.type === 'debate.failed') { M.done = true; M.failed = p.reason || '알 수 없는 이유'; return {kind:'done'}; }
+  return null;
+}
+function boardHTML(M) {            // 회의 중 링 안: 네 분석가의 지금 입장
+  const b = M.view || M.board, rnd = M.view ? M.viewRound : M.round;
+  return `<h3 class="bh">회의 진행 중${M === CUR && !M.shown ? '<button type="button" class="fast" data-fast>결론만 빠르게 보기</button>' : ''}</h3><ul class="board">${ROLE_ORDER.map(r => {
+    const x = b[r], w = who(r);
+    return `<li class="r-${r}"><b>${esc(w.n)}</b>${x ? `<i class="st st-${x.stance}">${STANCE_T[x.stance] || ''}</i><span>${esc(x.text || '')}</span>` : '<span class="pre">아직 발언 전</span>'}</li>`;
+  }).join('')}</ul>`;
+}
+function liveConclHTML(M) {
+  const s = M.summary, ev = M.evidence || {}, R = M.R;
+  if (!s) return boardHTML(M);
+  const text = s.status === 'failed' ? '결론을 만들지 못했어요. 위 대화를 참고해 주세요.' : esc(s.summary_text);
+  const li = (arr, f) => (arr || []).slice(0, 3).map(f).join('');
+  const nm2 = r => `<b class="r-${esc(r)}">${esc(who(r).n)}</b>`;
+  const chg = li(s.changed_views, x => `<li>${nm2(x.role)}<span>${esc(x.before)} <i>→</i> ${esc(x.after)}</span></li>`);
+  const acc = li(s.accepted, x => `<li>${nm2(x.role)}<span>${esc(x.statement)}</span></li>`);
+  const rej = li(s.rejected, x => `<li>${nm2(x.role)}<span><s>${esc(x.statement)}</s> <i>→</i> ${x.rejected_by
+    ? `<em>${esc(who(x.rejected_by).n)}의 반박으로 버려짐</em>` : `<em>${esc(x.reason || '반박으로 버려짐')}</em>`}</span></li>`);
+  const cites = (ev.web_news || []).flatMap(n => (n.citations || []).map(c => ({...c, q:(n.search_query_urls || [])[0]})));
+  const n0 = cites[0], dc = ev.disclosure_count, ds = ev.disclosures || [];
+  return `<h3>최종 결론</h3><p>${text}</p>
+    <ul class="refs">
+    <li><span class="rk">ML 결과</span>${R ? `<button type="button" data-mlrun="${esc(R.id)}">${esc(R.model ? mdl(R.model) : '예시')} · 기준일 ${esc(R.asOf || '-')} · 중심값 ${pctf(R.pct)}<i>→</i></button>` : '<span>이 회의의 계산 결과는 이 기기에 없어요</span>'}</li>
+    <li><span class="rk">DART 공시</span>${ds.length
+      ? `<span>${ds.slice(0, 2).map(x => `<a class="more2" href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.asset_name || nm(x.asset_id))} · ${esc(x.title)}${x.published_date ? ` <i>${esc(x.published_date)}</i>` : ''}<i>↗</i></a>`).join('')}${ds.length > 2 ? `<i>외 ${ds.length - 2}건</i>` : ''}</span>`
+      : `<a href="https://dart.fss.or.kr/" target="_blank" rel="noopener">${dc ? dc + '건을 근거로 반영' : ev.disclosure_status ? '최근 공시 없음' : '공시 확인 전'} · DART 전자공시<i>↗</i></a>`}</li>
+    <li><span class="rk">참고 뉴스</span>${n0 ? `<span><a href="${esc(n0.url)}" target="_blank" rel="noopener">${esc(n0.title)}<i>↗</i></a>${n0.q ? ` · <a href="${esc(n0.q)}" target="_blank" rel="noopener">검색어<i>↗</i></a>` : ''}${cites.length > 1 ? ` <i>외 ${cites.length - 1}건</i>` : ''}</span>` : '<span>반영된 뉴스가 없어요</span>'}</li></ul>`;
+}
+
+/* 시안 모드: 실제 API와 같은 모양의 이벤트를 만들어 같은 화면으로 보여줌 */
+const hasJong = w => { const c = String(w).trim().slice(-1), k = c.charCodeAt(0);
+  if (k >= 0xAC00 && k <= 0xD7A3) return (k - 0xAC00) % 28;            // 0이면 받침 없음
+  if (/[0-9]/.test(c)) return '0136783'.includes(c) ? 1 : 0;             // 영·일·삼·육·칠·팔
+  return /[lmnrLMNR]/.test(c) ? 1 : 0; };
+const iga = w => w + (hasJong(w) ? '이' : '가');
+const eunN = w => w + (hasJong(w) ? '은' : '는');
+const ro = w => { const j = hasJong(w); return w + (j && j !== 8 ? '으로' : '로'); };   // ㄹ받침은 '로'
+const ira = w => w + (hasJong(w) ? '이라고' : '라고');
+function demoEvents(R, did) {
+  const k = R.shock || S.shock, V = R.v || 1, rows = R.rows;
+  const FNS = ['원/달러 환율', '미국 10년 금리', 'WTI 유가', 'VIX'], ks = [k.fx, k.rate, k.wti, k.vix];
+  const F = [0, 1, 2, 3].map(j => rows.reduce((s, x) => s + x.v * (x.cf ? x.cf[j] : 0), 0) / V);
+  const ord = [0, 1, 2, 3].filter(j => ks[j]).sort((a, b) => Math.abs(F[b]) - Math.abs(F[a]));
+  const top = ord.length ? ord[0] : 0, tf = FNS[top];
+  const D = [], add = (label, value, unit, asset_name) => { const id = 'D' + (D.length + 1); D.push({id, label, value, unit, asset_name}); return id; };
+  const dTotal = add('전체 예상 손익', R.pnl, 'KRW'), dF = add(`${tf} 충격 기여`, F[top], '%p');
+  const per = {}; rows.forEach(x => per[x.code] = {r:add('시나리오 예상 수익률', x.r, '%', x.name), p:add('예상 손익', x.pnl, 'KRW', x.name), w:add('보유 비중', x.v / V * 100, '%', x.name)});
+  const big = rows.slice().sort((a, b) => b.v - a.v)[0], worst = rows.slice().sort((a, b) => a.pnl - b.pnl)[0], best = rows.slice().sort((a, b) => b.r - a.r)[0];
+  const dir = R.pnl >= 0 ? '소폭 이익' : '소폭 손실', ppv = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2) + '%p';
+  const parts = SHOCKS.filter(s => k[s.k]).map(s => `${s.label} ${(k[s.k] > 0 ? '+' : '') + k[s.k]}${s.unit}`);
+  const agenda = parts.length ? `지금 ${parts.join(', ')}만큼 움직인다면, 5거래일 뒤 이 포트폴리오를 어떻게 보시나요?` : '지금 추가 충격이 없다면, 5거래일 뒤 이 포트폴리오를 어떻게 보시나요?';
+  const ev = [], push = (type, payload) => ev.push({type, payload, seq:ev.length + 1, event_id:`${did}:${ev.length + 1}`});
+  const say = (rid, role, phase, stance, reply_to, text, sum, ids, extra = {}) => push('message.created',
+    {message_id:`${did}-${rid}-${role}`, role, phase, round_id:rid, stance, reply_to, view_status:extra.vs || 'initial',
+     display_text:text, summary_text:sum, structured_source_ids:ids, rag_source_ids:[],
+     claims:[{claim_id:`${role}-${rid}`, statement:sum, supersedes_claim_id:extra.sup || null, change_reason:extra.why || null}]});
+  const S1 = `${iga(big.name)} 포트폴리오 결과를 정한다`, S2 = `${iga(tf)} 결과를 움직였다`;
+  const S3 = `같은 충격에도 종목마다 반응이 갈린다`, S4 = `손실이 ${worst.name} 한 종목에 몰려 있다`;
+  const S5 = `${dir}이지만 부담은 ${worst.name}에 몰려 있다`, S6 = `부담의 크기는 ${tf} 가정에 달려 있다`;
+  const S7 = `${iga(tf)} 주된 요인이지만 종목별 차이도 크다`, S8 = `중심값이라서 장중 흐름으로 다시 확인해야 한다`;
+  push('debate.evidence_ready', {agenda, d_public:D, disclosures:[], web_news:[], disclosure_status:null});
+  push('debate.round', {round:1, agenda, speakers:ROLE_ORDER, issue:null});
+  say('r1-t1', 'portfolio', 'INITIAL', 'first', null,
+    `저는 이 시나리오에서 포트폴리오가 ${ira(dir)} 봅니다. 전체 예상 손익 ${sgn(R.pnl)}원을 보시면, 비중 ${(big.v / V * 100).toFixed(1)}%인 ${iga(big.name)} 결과를 사실상 정하기 때문입니다.`,
+    S1, [dTotal, per[big.code].w]);
+  say('r1-t2', 'macro', 'CHALLENGE', 'partial', 'portfolio',
+    `포트폴리오 전문가님의 ‘${S1}’는 말씀에는 일부 동의하지만, 저는 결과를 움직인 건 ${ira(tf)} 봅니다. ${tf} 충격 기여 ${ppv(F[top])}를 보시면 비중보다 충격의 방향이 더 크게 작용했기 때문입니다.`,
+    S2, [dF]);
+  say('r1-t3', 'market', 'CHALLENGE', 'agree', 'macro',
+    `거시경제 전문가님의 ‘${S2}’는 말씀에 동의합니다. 다만 ${best.name}의 시나리오 예상 수익률 ${pctf(best.r)}를 보시면 종목마다 반응이 갈려서, 같은 충격이라도 결과는 종목에 따라 다르다고 생각합니다.`,
+    S3, [per[best.code].r]);
+  say('r1-t4', 'risk', 'CHALLENGE', 'disagree', 'portfolio',
+    `저는 포트폴리오 전문가님의 ‘${S1}’는 판단만으로는 부족하다고 봅니다. ${worst.name}의 예상 손익 ${sgn(worst.pnl)}원을 보시면 부담이 한 종목에 몰려 있어서, 합계만 보면 위험을 작게 보게 됩니다.`,
+    S4, [per[worst.code].p]);
+  push('debate.round', {round:2, agenda:null, speakers:ROLE_ORDER, issue:null});
+  say('r2-t1', 'portfolio', 'REBUTTAL', 'revise', 'risk',
+    `리스크관리 전문가님의 ‘${S4}’는 지적을 보니 제 의견을 수정합니다. ${worst.name}의 보유 비중 ${(worst.v / V * 100).toFixed(1)}%를 보시면 손실 종목의 몫이 작지 않아서, 결론을 ‘${S5}’로 좁히겠습니다.`,
+    S5, [per[worst.code].w], {vs:'revised', sup:'portfolio-r1-t1', why:`손실이 ${worst.name}에 몰려 있다는 리스크관리 전문가님의 반박을 받아들였다`});
+  say('r2-t2', 'risk', 'REBUTTAL', 'agree', 'portfolio',
+    `포트폴리오 전문가님의 ‘${S5}’는 수정에 동의합니다. ${tf} 충격 기여 ${ppv(F[top])}를 보시면 이 부담은 ${tf} 가정이 유지될 때의 이야기라서, 가정이 바뀌면 크기가 달라질 수 있다고 생각합니다.`,
+    S6, [dF]);
+  say('r2-t3', 'macro', 'REBUTTAL', 'revise', 'market',
+    `시장상태 전문가님의 ‘${S3}’는 근거를 보니 제 의견을 수정합니다. ${best.name} ${pctf(best.r)}, ${worst.name} ${pctf(worst.r)}를 보시면 충격 하나로 다 설명되지 않아서, ‘${S7}’로 바꾸겠습니다.`,
+    S7, [per[best.code].r, per[worst.code].r], {vs:'revised', sup:'macro-r1-t2', why:'종목마다 반응이 갈린다는 시장상태 전문가님의 근거를 받아들였다'});
+  say('r2-t4', 'market', 'REBUTTAL', 'agree', 'risk',
+    `리스크관리 전문가님의 ‘${S6}’는 말씀에 동의합니다. 전체 예상 손익 ${sgn(R.pnl)}원은 중심값일 뿐이라서, 장중 흐름이 연결되면 이 판단을 다시 확인해야 한다고 생각합니다.`,
+    S8, [dTotal]);
+  push('debate.summary', {status:'published',
+    summary_text:`결과 리스크관리 전문가의 손실이 ${worst.name}에 몰려 있다는 근거를 바탕으로, 이 포트폴리오는 5거래일 뒤 ${dir}이지만 부담은 ${worst.name}에 집중된다고 결론 내렸습니다. 거시경제 전문가는 처음에 ${tf} 하나가 결과를 정한다고 봤으나, 시장상태 전문가의 종목별 반응이 갈린다는 반론을 받아 의견을 좁혔습니다. 최종적으로 방향은 ${dir} 쪽이 맞지만 부담의 크기는 ${tf} 가정에 따라 달라질 수 있다는 의견으로 합의되었습니다.`,
+    converged:true, open_issue_roles:[],
+    changed_views:[{role:'portfolio', before:S1, after:S5, reason:'리스크관리 전문가의 반박을 받아들였다', message_id:`${did}-r2-t1-portfolio`},
+                   {role:'macro', before:S2, after:S7, reason:'시장상태 전문가의 근거를 받아들였다', message_id:`${did}-r2-t3-macro`}],
+    accepted:[{role:'portfolio', statement:S5, message_id:`${did}-r2-t1-portfolio`, reason:'리스크관리·시장상태 전문가가 근거로 지지했다'},
+              {role:'risk', statement:S6, message_id:`${did}-r2-t2-risk`, reason:'거시경제 전문가의 충격 기여 근거와 맞는다'}],
+    rejected:[{role:'portfolio', statement:S1, message_id:`${did}-r1-t1-portfolio`, rejected_by:'risk', reason:S4}],
+    agreements:[], disagreements:[], next_checks:['장중 흐름 연결 후 다시 확인한다']});
+  push('debate.completed', {});
+  return ev;
+}
+
+/* 회의 화면: 이벤트를 받으면 순서대로 조금씩 간격을 두고 보여줌 */
+let ws = null, fastShow = false;
+async function startLive(R) {
+  if (!R.shock || R.id == null) R = {...R, shock:R.shock || {...S.shock}, id:R.id != null ? R.id : 'demo-run-' + Date.now()};
+  const id = ++run, log = $('#log');
+  setSteps(['회의 중', '결론']); steps(0);
+  log.innerHTML = typingHTML(); $('#saveMin').disabled = true; $('#skip').hidden = false; fastShow = false;
+  CUR = newMeeting(R, L.on ? null : 'demo-' + Date.now()); CUR.demo = !L.on;
+  go('detail'); fillPanel('d', CUR, false);
+  const M = CUR, q = [];
+  let busy = false, finished = false, nextAt = 0, timer = 0;
+  const nextRole = () => { const n = q.find(x => x.kind === 'msg'); return n && q.indexOf(n) === 0 ? n.p.role : (q[0] && q[0].kind === 'fail' ? null : n && n.p.role); };
+  const typing = () => { const t = $('#typing'); if (t) t.remove();
+    if (!(M.done && !q.length)) log.insertAdjacentHTML('beforeend', typingHTML(nextRole())); log.scrollTop = log.scrollHeight; };
+  const show = html => { const t = $('#typing'); if (t) t.remove(); if (html) log.insertAdjacentHTML('beforeend', html); typing(); };
+  const syncSteps = () => steps(finished && M.summary ? 2 : 0);
+  const finish = () => {
+    finished = true; M.shown = true; const t = $('#typing'); if (t) t.remove();
+    if (M.failed) log.insertAdjacentHTML('beforeend', `<p class="failmsg">회의가 중단됐어요: ${esc(M.failed)}</p>`);
+    syncSteps(); fillPanel('d', M, true); $('#saveMin').disabled = false; $('#skip').hidden = true;
+    if (ws) { ws.onclose = null; ws.close(); ws = null; }
+  };
+  const pump = () => {
+    if (busy || id !== run) return;
+    if (!q.length) { if (M.done && !finished) setTimeout(() => { if (id === run && !q.length && !finished) finish(); }, reduce || fastShow ? 0 : Math.max(0, nextAt - Date.now())); return; }
+    busy = true;
+    const gap = reduce || fastShow ? 0 : Math.max(0, nextAt - Date.now());
+    timer = setTimeout(() => {
+      if (id !== run) return;
+      const it = q.shift();
+      if (it.kind === 'msg' || it.kind === 'round' || it.kind === 'fail') {
+        if (it.kind === 'round') M.viewRound = it.round;
+        if (it.kind === 'msg') { M.view = M.view || {}; M.view[it.p.role] = {stance:it.p.stance || 'first', text:it.p.summary_text || talkParts(it.p).head}; }
+        show(itemHTML(it, M, true));
+        nextAt = Date.now() + readMs(it);
+        if (!finished) { const c = $('#dConcl'); if (c && !$('#detail .rpanel').classList.contains('ml')) { c.innerHTML = boardHTML(M); fit(); } }
+      }
+      syncSteps(); busy = false; pump();
+    }, gap);
+  };
+  const handle = ev => { if (id !== run) return; const it = liveApply(M, ev); if (!it) return; q.push(it);
+    const t = $('#typing'); if (t && !t.classList.contains('turn') && nextRole()) typing(); pump(); };
+  $('#skip').onclick = () => { fastShow = true; clearTimeout(timer); busy = false; pump(); };
+  if (!L.on) {                       // 시안 모드: 모델이 생각하는 시간처럼 이벤트를 천천히 흘려보냄
+    let t = 300;
+    demoEvents(R, M.id).forEach(ev => { t += ev.type === 'message.created' ? 1300 : 250; setTimeout(() => handle(ev), reduce ? 0 : t); });
+    return;
+  }
+  try {
+    const d = await api('/debates', {method:'POST', body:JSON.stringify({run_id:R.id})});
+    M.id = d.debate_id;
+    if (d.pubsub && d.pubsub.url) {
+      try { if (ws) { ws.onclose = null; ws.close(); } ws = new WebSocket(d.pubsub.url); ws.onmessage = e => { try { handle(JSON.parse(e.data)); } catch (x) {} }; } catch (x) {}
+    }
+  } catch (e) { show(`<p class="failmsg">AI 회의를 시작하지 못했어요: ${esc(e.message)}</p>`); const t = $('#typing'); if (t) t.remove(); return; }
+  const poll = async () => {
+    if (id !== run || M.done) return;
+    try { const r = await api(`/debates/${encodeURIComponent(M.id)}/events?after_seq=${M.seq}`); (r.events || []).forEach(handle); } catch (e) {}
+    if (id === run && !M.done) setTimeout(poll, 2500);
+  };
+  setTimeout(poll, 1200);
+}
+$('#more').addEventListener('click', () => { if (R0) startLive(R0); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-fast]'); if (b) { b.disabled = true; b.textContent = '결론으로 넘어가는 중…'; $('#skip').click(); } });
+$('#saveMin').addEventListener('click', () => {
+  if (!CUR) return;
+  if (L.on) { toast('회의록에 저장돼 있어요'); showMinutesLive(CUR.id); return; }
+  if (!DEMO_MIN.includes(CUR)) DEMO_MIN.unshift(CUR);
+  toast('회의록을 저장했어요'); showMinutesDemo(CUR.id);
+});
+
+/* 회의록: 실서버는 GET /api/debates, 시안 모드는 이 브라우저 메모리 */
+const SLOT_T = {'0830':'장 전 정규회의', '1300':'장 중 정규회의', '1540':'장 마감 후 정규회의'};
+let LMIN = [], LSEL = null; const LCACHE = {}; const DEMO_MIN = []; let DEMO_REG = null;
+const statT = d => d.status === 'completed' ? '' : d.status === 'failed' ? ' · 실패' : ' · 진행 중';
+function renderMinuteList(list) {
+  $('#msub').textContent = `정규회의 ${list.filter(d => d.kind === 'reg').length} · 스트레스 테스트 ${list.filter(d => d.kind === 'test').length}`;
+  $('#mlist').innerHTML = list.map(d => `<li><button type="button" class="mitem" data-id="${esc(d.debate_id)}" aria-current="${d === LSEL}">
+    <span class="top"><span>${day(d.created_at)} · ${hm(d.created_at)}${statT(d)}</span><span class="tag${d.kind === 'reg' ? ' reg' : ''}">${d.kind === 'reg' ? '정규회의' : '스트레스 테스트'}</span></span>
+    <b>${esc(d.title)}</b></button></li>`).join('');
+}
+function renderMinute(d, M) {
+  const k = d.R && d.R.shock;
+  const cond = k ? SHOCKS.map(s => `${s.label} ${(k[s.k] > 0 ? '+' : '') + k[s.k]}${s.unit}`) : [];
+  $('#mmain').innerHTML = `<div class="mhead"><span class="tag${d.kind === 'reg' ? ' reg' : ''}">${d.kind === 'reg' ? '정규회의' : '스트레스 테스트'}</span>
+      <h3>${esc(d.title)}</h3><p class="mm">${day(d.created_at)} · ${hm(d.created_at)}${d.R ? ' · ' + d.R.rows.map(x => x.name).join(', ') : ''}${statT(d)}</p>
+      ${cond.length ? `<div class="chips">${cond.map(c => `<span>${c}</span>`).join('')}</div>` : ''}</div>
+    <div class="msum">${d.R ? `<div><p class="eyebrow" style="text-align:left">My portfolio · 5 days</p>
+        <p class="rnum">${sgn(d.R.pnl)}<small>원</small></p><p class="rmeta" style="text-align:left">가상 손익 <b>${pctf(d.R.pct)}</b> · 보유 <b>${won(d.R.v)}원</b></p>
+        <div class="fig sm"><svg id="mChart" role="img" aria-label="이 회의의 5거래일 가상 경로"></svg></div></div>` : ''}
+      <div class="concl"${d.R ? '' : ' style="grid-column:1/-1"'}>${liveConclHTML(M)}</div></div>
+    <div class="mlog">${M.items.map(it => itemHTML(it, M, false)).join('') || '<p class="empty">아직 발언이 없어요.</p>'}</div>
+    <div class="mfoot links">${M.done ? '' : '<button type="button" class="linkbtn" id="mRefresh">새로 고침</button>'}</div>`;
+  sel = d.R ? {R:d.R} : null;
+  if (d.R) requestAnimationFrame(() => { draw($('#mChart'), d.R); $('#mChart').parentNode.classList.add('drawn'); });
+}
+async function showMinutesLive(id) {
+  if (S.view !== 'minutes') go('minutes');
+  try { LMIN = (await api('/debates?limit=50')).debates || []; }
+  catch (e) { $('#mlist').innerHTML = ''; $('#mmain').innerHTML = `<p class="empty">회의록을 불러오지 못했어요: ${esc(e.message)}</p>`; return; }
+  const all = runs();
+  LMIN.forEach(d => { const R = all[d.run_id]; d.R = R || null;
+    d.kind = d.trigger === 'scheduled' ? 'reg' : 'test';
+    d.title = d.kind === 'reg' ? (SLOT_T[d.scheduled_slot] || '정규회의') : R ? testTitle(R) : '내 분석 회의'; });
+  if (!LMIN.length) { $('#msub').textContent = ''; $('#mlist').innerHTML = ''; $('#mmain').innerHTML = '<p class="empty">아직 회의록이 없어요. 결과 화면에서 근거 확인하기로 회의를 열어 보세요.</p>'; return; }
+  LSEL = LMIN.find(d => d.debate_id === id) || LMIN[0];
+  renderMinuteList(LMIN);
+  $('#mmain').innerHTML = '<p class="empty">회의 내용을 불러오는 중이에요…</p>';
+  const d = LSEL;
+  let M = LCACHE[d.debate_id];
+  if (!M || !M.done) {
+    M = newMeeting(d.R, d.debate_id);
+    try { for (let guard = 0; guard < 10; guard++) { const r = await api(`/debates/${encodeURIComponent(d.debate_id)}/events?after_seq=${M.seq}`); (r.events || []).forEach(ev => liveApply(M, ev)); if (!r.events || r.events.length < 200) break; } }
+    catch (e) { $('#mmain').innerHTML = `<p class="empty">회의 내용을 불러오지 못했어요: ${esc(e.message)}</p>`; return; }
+    LCACHE[d.debate_id] = M;
+  }
+  if (LSEL === d) renderMinute(d, M);
+}
+function showMinutesDemo(id) {
+  if (S.view !== 'minutes') go('minutes');
+  if (!DEMO_REG) {                   // 정규회의 3번: 내 보유 종목에 시각별 예시 충격
+    const saved = S.shock, hold = S.hold, now = new Date();
+    if (!S.hold.some(h => BY[h.c] && h.n > 0)) S.hold = [{c:'005930', n:10}, {c:'005380', n:5}];
+    DEMO_REG = SLOTS.map((sl, i) => {
+      S.shock = sl.shock; const R = {...calc(), shock:{...sl.shock}, id:'demo-reg' + i, model:'예시', asOf:'-'};
+      const [h, m] = sl.t.split(':'), M = newMeeting(R, 'demo-reg' + i);
+      demoEvents(R, M.id).forEach(ev => liveApply(M, ev));
+      return {debate_id:M.id, created_at:new Date(now.getFullYear(), now.getMonth(), now.getDate(), +h, +m).toISOString(), kind:'reg', title:sl.title, R, status:'completed', M};
+    });
+    S.shock = saved; S.hold = hold;
+  }
+  const tests = DEMO_MIN.map(M => ({debate_id:M.id, created_at:new Date(+M.id.split('-')[1] || Date.now()).toISOString(), kind:'test', title:testTitle(M.R), R:M.R, status:M.done ? 'completed' : 'running', M}));
+  const list = [...tests, ...DEMO_REG].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  LSEL = list.find(d => d.debate_id === id) || list[0];
+  renderMinuteList(list); renderMinute(LSEL, LSEL.M);
+  LCACHE[LSEL.debate_id] = LSEL.M;
+}
+$('#mlist').addEventListener('click', e => { const b = e.target.closest('.mitem'); if (!b) return; L.on ? showMinutesLive(b.dataset.id) : showMinutesDemo(b.dataset.id); $('#stage').scrollTop = 0; });
+$('#toMin').addEventListener('click', () => L.on ? showMinutesLive() : showMinutesDemo());
+$('#mmain').addEventListener('click', e => { if (e.target.closest('#mRefresh') && LSEL) { delete LCACHE[LSEL.debate_id]; L.on ? showMinutesLive(LSEL.debate_id) : showMinutesDemo(LSEL.debate_id); } });
+
+/* 시작: 배포 환경이면 LIVE로 전환하고 로그인 상태를 읽음 */
+(async () => {
+  try {
+    const r = await fetch('/.auth/me', {cache:'no-store'});
+    if (!r.ok || !(r.headers.get('content-type') || '').includes('json')) throw 0;
+    const me = await r.json(); L.on = true;
+    $('#sumLbl').textContent = '평가금액 합계 · 현재가 기준'; $('#setNote').textContent = 'ML 모델로 5거래일 뒤를 계산해요';
+    const p = me.clientPrincipal;
+    if (p) setUser(p.userDetails || 'Google 계정');
+    if (new URLSearchParams(location.search).has('start')) {
+      history.replaceState(null, '', location.pathname);
+      if (p) { go('loading'); setTimeout(() => go('setup'), reduce ? 300 : 1200); }
+    }
+  } catch (e) { L.on = false; $('#mode').textContent = '시안 모드 · 예시 데이터'; }
+})();
+
+/* ---------- chart ---------- */
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function draw(s = $('#chart'), RR = R0) {
+  const W = s.clientWidth, H = s.clientHeight; if (!RR || !W) return;
+  const n = 9, end = RR.pct, rnd = rng(Math.round(end * 1000) + RR.rows.length * 97), gid = 'g' + s.id;
+  let w = [0]; for (let i = 1; i <= n; i++) w.push(w[i - 1] + (rnd() - .5));
+  const amp = Math.max(Math.abs(end), .35) * .9;
+  const v = w.map((x, i) => end * (i / n) + (x - w[n] * i / n) * amp);
+  const lo = Math.min(0, ...v), hi = Math.max(0, ...v), pad = (hi - lo) * .25 + .05;
+  const X = i => i / n * W, Y = y => H - 10 - (y - lo + pad) / (hi - lo + 2 * pad) * (H - 20);
+  const P = v.map((y, i) => [X(i), Y(y)]);
+  let d = `M${P[0][0]},${P[0][1]}`;
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2;
+    d += ` C${p1[0] + (p2[0] - p0[0]) / 6},${p1[1] + (p2[1] - p0[1]) / 6} ${p2[0] - (p3[0] - p1[0]) / 6},${p2[1] - (p3[1] - p1[1]) / 6} ${p2[0]},${p2[1]}`;
+  }
+  const L = P[P.length - 1];
+  s.innerHTML = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b5fd6" stop-opacity=".2"/><stop offset="1" stop-color="#6b5fd6" stop-opacity="0"/></linearGradient></defs>
+    <path d="${d} L${W},${H} L0,${H} Z" fill="url(#${gid})"/>
+    <line x1="0" x2="${W}" y1="${Y(0)}" y2="${Y(0)}" stroke="rgba(29,28,36,.25)" stroke-dasharray="3 5"/>
+    <path class="ln" d="${d}" pathLength="1" fill="none" stroke="#5a4ed0" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="${L[0]}" cy="${L[1]}" r="3.5" fill="#1d1c24"><animate attributeName="opacity" from="0" to="1" begin="1.7s" dur=".4s" fill="freeze"/></circle>`;
+  if (!reduce) s.querySelector('circle').setAttribute('opacity', 0);
+}
+new ResizeObserver(() => { if (S.view === 'result') { draw(); $('#result .fig').classList.add('drawn'); } }).observe($('#result .fig'));
+new ResizeObserver(() => { if (S.view === 'detail' && CUR) draw($('#dChart'), CUR.R); if (S.view === 'minutes' && sel && $('#mChart')) draw($('#mChart'), sel.R); }).observe($('#stage'));
+
+/* ---------- the ring ---------- */
+const cv = $('#ring'), ctx = cv.getContext('2d');
+let DPR = 1, VW = 0, VH = 0;
+function size() { DPR = Math.min(2, devicePixelRatio || 1); VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; }
+size(); addEventListener('resize', size);
+const cur = {R:0, a:0, g:0, amp:1, cx:innerWidth / 2, cy:innerHeight / 2, dot:0};
+let lastRect = null, hover = false;
+$('#hit').addEventListener('pointerenter', () => hover = true);
+$('#hit').addEventListener('pointerleave', () => hover = false);
+
+function target() {
+  const m = Math.min(VW, VH);
+  const T = {R:m * .16, a:0, g:0, amp:1, cx:VW / 2, cy:VH / 2, dot:0};
+  const idleR = Math.max(120, Math.min(250, m * .27));
+  if (S.view === 'idle') Object.assign(T, {R:idleR, a:1, g:1});
+  else if (S.view === 'loading') Object.assign(T, {R:idleR * 1.08, a:1, g:1, amp:1.8});
+  else if (S.view === 'login') Object.assign(T, {R:Math.max(220, Math.min(320, m * .36)), a:1});
+  else if (['setup', 'result', 'calc', 'detail', 'minutes'].includes(S.view)) {
+    const p = S.view === 'calc' ? null : document.querySelector('#' + S.view + ' .panel');
+  
+    if (p) { const r = p.getBoundingClientRect(); if (r.width) lastRect = r; }
+    const r = lastRect || {left:VW / 2 - 270, top:VH / 2 - 300, width:540, height:600};
+    T.cx = r.left + r.width / 2; T.cy = r.top + r.height / 2;
+    T.R = Math.max(Math.hypot(r.width, r.height) / 2 + 24, m * .42);
+    if (VW < 600) T.R = Math.max(r.width / 2 + 40, Math.min(T.R, VH * .62));
+    if ((S.view === 'detail' || S.view === 'minutes') && VW > 980) T.R = Math.min(Math.hypot(r.width, r.height) / 2 + 22, VH * (S.view === 'detail' ? .74 : .62));
+    T.a = 1;
+    if (S.view === 'minutes') { T.cx = VW / 2; T.cy = VH / 2; T.R = Math.hypot(VW, VH) / 2 - Math.min(VW, VH) * .07; }
+    if (S.view === 'calc') { T.R *= .9; T.amp = 2.6; T.dot = 1; }
+  }
+  return T;
+}
+function shape(t, f) {
+  const {R, amp, cx, cy} = cur, M = 180, wid = R * .055, pts = [];
+  for (let i = 0; i <= M; i++) {
+    const th = i / M * Math.PI * 2;
+    const tw = Math.sin(th * 2 + t * .35 + f * .6) * .5 + Math.sin(th * 3 - t * .22) * .5;
+    const r = R * (1 + amp * (.028 * Math.sin(2 * th + t * .32 + f * .3) + .02 * Math.sin(3 * th - t * .45 + f * 1.6) + .012 * Math.sin(5 * th + t * .7 + f * 3.1)))
+      + wid * (f - .5) * (1.2 + tw);
+    pts.push([(cx + Math.cos(th) * r) * DPR, (cy + Math.sin(th) * r) * DPR]);
+  }
+  return pts;
+}
+const trace = p => { ctx.beginPath(); p.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); };
+function ring(t) {
+  const {R, a, cx, cy} = cur; if (a < .01 || R < 4) return;
+  const N = 44;
+  // 렌즈: 리본 안쪽 가장자리와 같은 모양으로 채워 위치가 어긋나지 않게
+  ctx.save();
+  const lg = ctx.createRadialGradient(cx * DPR, (cy - R * .3) * DPR, R * .1 * DPR, cx * DPR, cy * DPR, R * 1.05 * DPR);
+  lg.addColorStop(0, `rgba(255,255,255,${.78 * a})`); lg.addColorStop(.7, `rgba(250,250,253,${.55 * a})`); lg.addColorStop(1, `rgba(236,235,244,${.5 * a})`);
+  ctx.shadowColor = `rgba(55,45,110,${.16 * a})`; ctx.shadowBlur = 70 * DPR; ctx.shadowOffsetY = 24 * DPR;
+  trace(shape(t, .15)); ctx.fillStyle = lg; ctx.fill();
+  ctx.restore();
+  let grad;
+  if (ctx.createConicGradient) {
+    grad = ctx.createConicGradient(-2.3 + t * .05, cx * DPR, cy * DPR);
+    [[0,'rgba(38,34,58,1)'],[.14,'rgba(112,100,205,.9)'],[.3,'rgba(184,176,232,.75)'],[.48,'rgba(60,54,96,1)'],
+     [.62,'rgba(30,28,46,1)'],[.78,'rgba(132,120,222,.9)'],[.92,'rgba(86,78,150,.95)'],[1,'rgba(38,34,58,1)']].forEach(s => grad.addColorStop(...s));
+  } else { grad = ctx.createLinearGradient((cx - R) * DPR, (cy - R) * DPR, (cx + R) * DPR, (cy + R) * DPR); grad.addColorStop(0, '#2a2640'); grad.addColorStop(.5, '#8a7fd8'); grad.addColorStop(1, '#2a2640'); }
+  const blur = 'filter' in ctx;
+  ctx.save();
+  // 라벤더 번짐 + 진주빛 하이라이트
+  if (blur) ctx.filter = `blur(${9 * DPR}px)`;
+  ctx.globalAlpha = a * .38; ctx.lineWidth = 9 * DPR; ctx.strokeStyle = 'rgba(140,126,232,1)'; trace(shape(t, .5)); ctx.stroke();
+  if (blur) ctx.filter = `blur(${3 * DPR}px)`;
+  ctx.globalAlpha = a * .9; ctx.lineWidth = 3 * DPR; ctx.strokeStyle = '#fff'; trace(shape(t, .05)); ctx.stroke();
+  ctx.filter = 'none'; ctx.strokeStyle = grad;
+  for (let s = 0; s < N; s++) {
+    const f = s / (N - 1);
+    ctx.globalAlpha = a * (.07 + .07 * Math.sin(f * Math.PI)); ctx.lineWidth = 1.1 * DPR;
+    trace(shape(t, f)); ctx.stroke();
+  }
+  ctx.restore();
+}
+let gt = 0, gl = 0;
+function graph(t) {
+  const {R, g, cx, cy} = cur; if (g < .01) return;
+  t = gt;
+  const boost = 1 + gl * 1.2;
+  const n = 34, w = R * 1.05, x0 = cx - w / 2;
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const x = x0 + i / (n - 1) * w, edge = Math.sin(i / (n - 1) * Math.PI);
+    const y = cy + Math.sin(i * .36 - t * 1.1) * R * .09;
+    const h = R * (.03 + .035 * Math.abs(Math.sin(i * 1.7 + t * .8))) * boost;
+    const al = Math.min(1, g * edge * (hover || gl > .1 ? .95 : .65));
+    ctx.strokeStyle = `rgba(62,52,130,${al})`; ctx.lineWidth = 1.2 * DPR;
+    ctx.beginPath(); ctx.moveTo(x * DPR, (y - h) * DPR); ctx.lineTo(x * DPR, (y + h) * DPR); ctx.stroke();
+    ctx.fillStyle = `rgba(62,52,130,${al * .5})`;
+    for (const k of [-1.9, 1.9]) { ctx.beginPath(); ctx.arc(x * DPR, (y + h * k) * DPR, 1 * DPR, 0, 7); ctx.fill(); }
+  }
+  ctx.restore();
+}
+function dot(t) {
+  if (cur.dot < .01) return;
+  const {cx, cy} = cur, p = (t * .9) % 1;
+  ctx.fillStyle = `rgba(29,28,36,${cur.dot})`; ctx.beginPath(); ctx.arc(cx * DPR, cy * DPR, 2.2 * DPR, 0, 7); ctx.fill();
+  ctx.strokeStyle = `rgba(93,80,201,${cur.dot * (1 - p) * .6})`; ctx.lineWidth = DPR;
+  ctx.beginPath(); ctx.arc(cx * DPR, cy * DPR, (4 + p * 60) * DPR, 0, 7); ctx.stroke();
+}
+let t0 = performance.now(), tp = t0;
+function frame(now) {
+  const t = (now - t0) / 1000 * (reduce ? .25 : 1), T = target(), k = reduce ? .3 : .075;
+  const dt = Math.min(.05, (now - tp) / 1000); tp = now;
+  gl += ((S.view === 'loading' ? 1 : 0) - gl) * .12;
+  gt += dt * (reduce ? .25 : 1) * (1 + gl * 4);
+  for (const key in T) cur[key] += (T[key] - cur[key]) * (key === 'cx' || key === 'cy' || (key === 'g' && T.g < cur.g) ? .2 : k);
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ring(t); graph(t); dot(t);
+  if (S.view === 'idle') {
+    const hit = $('#hit'); hit.style.width = hit.style.height = cur.R * 2 + 'px';
+    $('#hint').style.top = (cur.cy + cur.R + 30) + 'px';
+    $('#hint').style.color = hover ? 'var(--dim)' : '';
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
